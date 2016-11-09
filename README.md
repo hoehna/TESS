@@ -21,9 +21,9 @@ library(TESS)
 
 # Manual and Tutorials
 
-All functions in TESS are documented according to the CRAN standard and the manual can be downloaded from https://github.com/hoehna/TESS/blob/master/docs/manual.pdf
+All functions in TESS are documented according to the CRAN standard and the manual can be downloaded from https://raw.githubusercontent.com/hoehna/TESS/master/docs/manual.pdf
 
-Additionally, we provide an elaborate vignette containing several tutorials on how to use TESS available from https://github.com/hoehna/TESS/blob/master/docs/Bayesian_Diversification_Rate_Analysis.pdf
+Additionally, we provide an elaborate vignette containing several tutorials on how to use TESS available from https://raw.githubusercontent.com/hoehna/TESS/master/docs/Bayesian_Diversification_Rate_Analysis.pdf
 
 
 # Citations
