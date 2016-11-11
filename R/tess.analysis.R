@@ -1084,8 +1084,6 @@ tess.analysis <- function( tree,
 
     if ( SAMPLE ) {
 
-      recover()
-
       # Progress by iteration
       iteration.progress <- i / MAX_ITERATIONS
 
