@@ -213,7 +213,7 @@ tess.analysis <- function( tree,
 
     if ( lambda.hyper.prior.form == "lognormal" ) {
       speciationRatePriorMean <- mean( log(samples.lambda) )
-      speciationRatePriorStDev <- sqrt( mean( (log(samples.lambda)-speciationRatePriorMean)^2 ) )
+      speciationRatePriorStDev <- sqrt( empiricalHyperPriorInflation * mean( (log(samples.lambda)-speciationRatePriorMean)^2 ) )
     } else if ( lambda.hyper.prior.form == "normal" ) {
       speciationRatePriorMean <- m.lambda
       speciationRatePriorStDev <- sqrt(v.lambda)
@@ -224,7 +224,7 @@ tess.analysis <- function( tree,
 
     if ( mu.hyper.prior.form == "lognormal" ) {
       extinctionRatePriorMean <- mean( log(samples.mu) )
-      extinctionRatePriorStDev <- sqrt( mean( (log(samples.mu)-extinctionRatePriorMean)^2 ) )
+      extinctionRatePriorStDev <- sqrt( empiricalHyperPriorInflation * mean( (log(samples.mu)-extinctionRatePriorMean)^2 ) )
     } else if ( mu.hyper.prior.form == "normal" ) {
       extinctionRatePriorMean <- m.mu
       extinctionRatePriorStDev <- sqrt(v.mu)
