@@ -36,6 +36,7 @@
 # @since 2012-09-22, version 2.0
 #
 # @param    tree                                          phylo         the tree
+# @param    tree                                          phylo         the tree
 # @param    initialSpeciationRate                         vector        The initial value of the speciation rate when the MCMC is started.
 # @param    initialExtinctionRate                         vector        The initial value of the extinction rate when the MCMC is started.
 # @param    speciationRatePriorMean                       scalar        mean parameter for the lognormal prior on lambda
@@ -127,11 +128,16 @@ tess.analysis <- function( tree,
   }
 
   MAX_TRIES <- 1000
-
-  times <- branching.times(tree)
-
-  if ( !is.ultrametric(tree) ) {
-    stop("The likelihood function is only defined for ultrametric trees!")
+  
+  if ( class(tree) == "phylo" ) {
+    use_tree_sample = FALSE
+    times <- branching.times(tree)
+  } else if ( class(tree) == "multiPhylo" ) {
+    use_tree_sample = TRUE
+    times <- list()
+    for (i in 1:length(tree)) {
+      times[[i]] <- branching.times(tree[[i]])
+    }
   }
 
   if ( CONDITION != "time" && CONDITION != "survival" && CONDITION != "taxa" ) {
