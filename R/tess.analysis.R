@@ -184,7 +184,11 @@ tess.analysis <- function( tree,
       return(lnl)
     }
 
-    prior.diversification <- function(x) { dexp(x,rate=max(times)/log(length(times)),log=TRUE) }
+    if ( use_tree_sample == TRUE ) {
+       prior.diversification <- function(x) { dexp(x,rate=max(times[[1]])/log(length(times[[1]])),log=TRUE) }
+    } else {
+       prior.diversification <- function(x) { dexp(x,rate=max(times)/log(length(times)),log=TRUE) }
+    }
     prior.turnover <- function(x) { dbeta(x,shape1=1.5,shape2=3,log=TRUE) }
     priors <- c("diversification"=prior.diversification,"turnover"=prior.turnover)
 
@@ -398,7 +402,14 @@ tess.analysis <- function( tree,
 
   }
 
-  AGE <- max( as.numeric( branching.times( tree ) ) )
+  if ( use_tree_sample == TRUE ) {
+     AGE <- max( as.numeric( branching.times( tree[[1]] ) ) )
+     if ( length(tree) > 1 ) {
+        for ( i in 2:length(tree)) AGE <- max( c(AGE, as.numeric( branching.times( tree[[i]] ) ) ) )
+     }
+  } else {
+     AGE <- max( as.numeric( branching.times( tree ) ) )
+  }
 
   # these are the parameters we sample
   posterior <- c()
