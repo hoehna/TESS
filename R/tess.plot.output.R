@@ -83,8 +83,22 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
     names(col) <- fig.types
   }
 
+
+   if ( class(output$tree) == "phylo" ) {
+      use_tree_sample = FALSE
+      treeAge <- max( branching.times(output$tree) )
+   } else if ( class(output$tree) == "multiPhylo" ) {
+      use_tree_sample = TRUE
+      times <- list()
+      treeAge <- 0
+      for (i in 1:length(output$tree)) {
+         times[[i]] <- branching.times(output$tree[[i]])
+         time <- max( c(treeAge,times[[i]]) )
+      }
+      NUM_SAMPLED_TREES <- length(output$tree)
+   }
+   
   # Compute the axes
-  treeAge <- max(branching.times(output$tree))
   numIntervals <- length(output$intervals)-1
   plotAt <- 0:numIntervals
   intervalSize <- treeAge/numIntervals
