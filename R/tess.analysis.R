@@ -299,29 +299,30 @@ tess.analysis <- function( tree,
 
   likelihood <- function(lambda,lambdaTimes,mu,muTimes,tMassExtinction,pSurvival) {
 
-    if ( priorOnly == FALSE ) {
-       if( any( lambda < 0 ) | any( mu < 0 ) ) {
-          lnl <- -Inf
-       } else {
+     if ( priorOnly == FALSE ) {
+        if( any( lambda < 0 ) | any( mu < 0 ) ) {
+           lnl <- -Inf
+        } else {
             
-          if ( use_tree_sample == TRUE ) {
-             ln_probs <- c()
-             max_prob <- -Inf
+           if ( use_tree_sample == TRUE ) {
+              ln_probs <- c()
+              max_prob <- -Inf
          
-             for (i in 1:NUM_SAMPLED_TREES) {
-                ln_probs[i] <- tess.likelihood.rateshift(times[[i]], lambda, mu, rateChangeTimesLambda = lambdaTimes, rateChangeTimesMu = muTimes, massExtinctionTimes= tMassExtinction, massExtinctionSurvivalProbabilities = pSurvival, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log = TRUE)
-                if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
-             }
-             sum <- 0.0
-             for (i in 1:NUM_SAMPLED_TREES) {
-                sum <- sum + exp( ln_probs[i] - max_prob ) / NUM_SAMPLED_TREES
-             }
-             lnl <- log( sum ) + max
-          } else {
-          lnl <- tess.likelihood.rateshift(times, lambda, mu, rateChangeTimesLambda = lambdaTimes, rateChangeTimesMu = muTimes, massExtinctionTimes= tMassExtinction, massExtinctionSurvivalProbabilities = pSurvival, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log = TRUE)
+              for (i in 1:NUM_SAMPLED_TREES) {
+                 ln_probs[i] <- tess.likelihood.rateshift(times[[i]], lambda, mu, rateChangeTimesLambda = lambdaTimes, rateChangeTimesMu = muTimes, massExtinctionTimes= tMassExtinction, massExtinctionSurvivalProbabilities = pSurvival, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log = TRUE)
+                 if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
+              }
+              sum <- 0.0
+              for (i in 1:NUM_SAMPLED_TREES) {
+                 sum <- sum + exp( ln_probs[i] - max_prob ) / NUM_SAMPLED_TREES
+              }
+              lnl <- log( sum ) + max
+           } else {
+              lnl <- tess.likelihood.rateshift(times, lambda, mu, rateChangeTimesLambda = lambdaTimes, rateChangeTimesMu = muTimes, massExtinctionTimes= tMassExtinction, massExtinctionSurvivalProbabilities = pSurvival, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log = TRUE)
+           }
        }
     } else {
-      lnl <- 0
+       lnl <- 0
     }
     return (lnl)
 
