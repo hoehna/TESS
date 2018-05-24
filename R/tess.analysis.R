@@ -177,7 +177,7 @@ tess.analysis <- function( tree,
          for (i in 1:NUM_SAMPLED_TREES) {
             sum <- sum + exp( ln_probs[i] - max_prob ) / NUM_SAMPLED_TREES
          }
-         lnl <- log( sum ) + max
+         lnl <- log( sum ) + max_prob
       } else {
          lnl <- tess.likelihood(times, b, d, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
       }
@@ -316,7 +316,7 @@ tess.analysis <- function( tree,
               for (i in 1:NUM_SAMPLED_TREES) {
                  sum <- sum + exp( ln_probs[i] - max_prob ) / NUM_SAMPLED_TREES
               }
-              lnl <- log( sum ) + max
+              lnl <- log( sum ) + max_prob
            } else {
               lnl <- tess.likelihood.rateshift(times, lambda, mu, rateChangeTimesLambda = lambdaTimes, rateChangeTimesMu = muTimes, massExtinctionTimes= tMassExtinction, massExtinctionSurvivalProbabilities = pSurvival, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log = TRUE)
            }
