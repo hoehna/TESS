@@ -55,19 +55,19 @@
 ################################################################################
 
 tess.likelihood.rateshift <- function( times,
-                                             lambda,
-                                             mu,
-                                             rateChangeTimesLambda = c(),
-                                             rateChangeTimesMu = c(),
-                                             massExtinctionTimes = c(),
-                                             massExtinctionSurvivalProbabilities = c(),
-                                             missingSpecies = c(),
-                                             timesMissingSpecies = c(),
-                                             samplingStrategy = "uniform",
-                                             samplingProbability = 1.0,
-                                             MRCA=TRUE,
-                                             CONDITION="survival",
-                                             log=TRUE) {
+                                       lambda,
+                                       mu,
+                                       rateChangeTimesLambda = c(),
+                                       rateChangeTimesMu = c(),
+                                       massExtinctionTimes = c(),
+                                       massExtinctionSurvivalProbabilities = c(),
+                                       missingSpecies = c(),
+                                       timesMissingSpecies = c(),
+                                       samplingStrategy = "uniform",
+                                       samplingProbability = 1.0,
+                                       MRCA=TRUE,
+                                       CONDITION="survival",
+                                       log=TRUE) {
 
   if ( length(lambda) != (length(rateChangeTimesLambda)+1) || length(mu) != (length(rateChangeTimesMu)+1) ) {
     stop("Number of rate-change times needs to be one less than the number of rates!")
