@@ -93,7 +93,7 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
       treeAge <- 0
       for (i in 1:length(output$tree)) {
          times[[i]] <- branching.times(output$tree[[i]])
-         time <- max( c(treeAge,times[[i]]) )
+         treeAge <- max( c(treeAge,times[[i]]) )
       }
       NUM_SAMPLED_TREES <- length(output$tree)
    }
