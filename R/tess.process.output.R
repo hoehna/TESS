@@ -61,9 +61,23 @@ tess.process.output = function(dir,tree=NULL,numExpectedRateChanges=2,numExpecte
       stop("You must either provide an input tree or have a correct .tre file into the directory.")
     }
   }
-
+   
+   if ( class(tree) == "phylo" ) {
+      use_tree_sample = FALSE
+      times <- branching.times(tree)
+      time <- max( branching.times(tree) )
+   } else if ( class(tree) == "multiPhylo" ) {
+      use_tree_sample = TRUE
+      times <- list()
+      time <- 0
+      for (i in 1:length(tree)) {
+         times[[i]] <- branching.times(tree[[i]])
+         time <- max( c(time,times[[i]]) )
+      }
+      NUM_SAMPLED_TREES <- length(tree)
+   }
+   
   # Get the time of the tree and divide it into intervals
-  time <- max( branching.times(tree) )
   intervals <- seq(0,time,length.out=numIntervals+1)
 
   # Get the numCategories output

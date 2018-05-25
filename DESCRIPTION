@@ -1,8 +1,8 @@
 Package: TESS
 Type: Package
 Title: Diversification Rate Estimation and Fast Simulation of Reconstructed Phylogenetic Trees under Tree-Wide Time-Heterogeneous Birth-Death Processes Including Mass-Extinction Events
-Version: 2.1.0
-Date: 2015-10-23
+Version: 3.0.0
+Date: 2018-05-24
 Author: Sebastian Hoehna and Michael R. May
 Maintainer: Sebastian Hoehna <Sebastian.Hoehna@gmail.com>
 Depends: ape, coda, deSolve

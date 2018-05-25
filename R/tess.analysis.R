@@ -36,6 +36,7 @@
 # @since 2012-09-22, version 2.0
 #
 # @param    tree                                          phylo         the tree
+# @param    tree                                          phylo         the tree
 # @param    initialSpeciationRate                         vector        The initial value of the speciation rate when the MCMC is started.
 # @param    initialExtinctionRate                         vector        The initial value of the extinction rate when the MCMC is started.
 # @param    speciationRatePriorMean                       scalar        mean parameter for the lognormal prior on lambda
@@ -127,11 +128,17 @@ tess.analysis <- function( tree,
   }
 
   MAX_TRIES <- 1000
-
-  times <- branching.times(tree)
-
-  if ( !is.ultrametric(tree) ) {
-    stop("The likelihood function is only defined for ultrametric trees!")
+  
+  if ( class(tree) == "phylo" ) {
+    use_tree_sample = FALSE
+    times <- branching.times(tree)
+  } else if ( class(tree) == "multiPhylo" ) {
+    use_tree_sample = TRUE
+    times <- list()
+    for (i in 1:length(tree)) {
+      times[[i]] <- branching.times(tree[[i]])
+    }
+    NUM_SAMPLED_TREES <- length(tree)
   }
 
   if ( CONDITION != "time" && CONDITION != "survival" && CONDITION != "taxa" ) {
@@ -157,12 +164,31 @@ tess.analysis <- function( tree,
 #       d <- params[2]
       b <- params[1]/(1-params[2])
       d <- params[2]*b
-
-      lnl <- tess.likelihood(times, b, d, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
+      
+      if ( use_tree_sample == TRUE ) {
+         ln_probs <- c()
+         max_prob <- -Inf
+         
+         for (i in 1:NUM_SAMPLED_TREES) {
+            ln_probs[i] <- tess.likelihood(times[[i]], b, d, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
+            if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
+         }
+         sum <- 0.0
+         for (i in 1:NUM_SAMPLED_TREES) {
+            sum <- sum + exp( ln_probs[i] - max_prob ) / NUM_SAMPLED_TREES
+         }
+         lnl <- log( sum ) + max_prob
+      } else {
+         lnl <- tess.likelihood(times, b, d, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
+      }
       return(lnl)
     }
 
-    prior.diversification <- function(x) { dexp(x,rate=max(times)/log(length(times)),log=TRUE) }
+    if ( use_tree_sample == TRUE ) {
+       prior.diversification <- function(x) { dexp(x,rate=max(times[[1]])/log(length(times[[1]])),log=TRUE) }
+    } else {
+       prior.diversification <- function(x) { dexp(x,rate=max(times)/log(length(times)),log=TRUE) }
+    }
     prior.turnover <- function(x) { dbeta(x,shape1=1.5,shape2=3,log=TRUE) }
     priors <- c("diversification"=prior.diversification,"turnover"=prior.turnover)
 
@@ -277,14 +303,30 @@ tess.analysis <- function( tree,
 
   likelihood <- function(lambda,lambdaTimes,mu,muTimes,tMassExtinction,pSurvival) {
 
-    if ( priorOnly == FALSE ) {
-      if( any( lambda < 0 ) | any( mu < 0 ) ) {
-        lnl <- -Inf
-      } else {
-        lnl <- tess.likelihood.rateshift(times, lambda, mu, rateChangeTimesLambda = lambdaTimes, rateChangeTimesMu = muTimes, massExtinctionTimes= tMassExtinction, massExtinctionSurvivalProbabilities = pSurvival, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log = TRUE)
-      }
+     if ( priorOnly == FALSE ) {
+        if( any( lambda < 0 ) | any( mu < 0 ) ) {
+           lnl <- -Inf
+        } else {
+            
+           if ( use_tree_sample == TRUE ) {
+              ln_probs <- c()
+              max_prob <- -Inf
+         
+              for (i in 1:NUM_SAMPLED_TREES) {
+                 ln_probs[i] <- tess.likelihood.rateshift(times[[i]], lambda, mu, rateChangeTimesLambda = lambdaTimes, rateChangeTimesMu = muTimes, massExtinctionTimes= tMassExtinction, massExtinctionSurvivalProbabilities = pSurvival, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log = TRUE)
+                 if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
+              }
+              sum <- 0.0
+              for (i in 1:NUM_SAMPLED_TREES) {
+                 sum <- sum + exp( ln_probs[i] - max_prob ) / NUM_SAMPLED_TREES
+              }
+              lnl <- log( sum ) + max_prob
+           } else {
+              lnl <- tess.likelihood.rateshift(times, lambda, mu, rateChangeTimesLambda = lambdaTimes, rateChangeTimesMu = muTimes, massExtinctionTimes= tMassExtinction, massExtinctionSurvivalProbabilities = pSurvival, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log = TRUE)
+           }
+       }
     } else {
-      lnl <- 0
+       lnl <- 0
     }
     return (lnl)
 
@@ -292,75 +334,82 @@ tess.analysis <- function( tree,
 
   prior <- function(timesLambda,valuesLambda,timesMu,valuesMu,timesMassExtinction,valuesMassExtinction) {
 
-    if( any( valuesLambda < 0 ) | any( valuesMu < 0 ) ) {
-      return (-Inf)
-    }
+     if( any( valuesLambda < 0 ) | any( valuesMu < 0 ) ) {
+        return (-Inf)
+     }
 
-    #####################
-    ## Speciation Rate ##
-    #####################
+     #####################
+     ## Speciation Rate ##
+     #####################
 
-    # prior on number of changes for lambda
-    k <- length(timesLambda)
-    lnp <- dpois(k,numExpectedRateChanges,log=TRUE)
+     # prior on number of changes for lambda
+     k <- length(timesLambda)
+     lnp <- dpois(k,numExpectedRateChanges,log=TRUE)
 
-    if ( k > 0 ) {
-      # prior on change times
-      lnp <- lnp + sum( dunif(timesLambda,0,AGE,log=TRUE) )
-    }
+     if ( k > 0 ) {
+        # prior on change times
+        lnp <- lnp + sum( dunif(timesLambda,0,AGE,log=TRUE) )
+     }
 
-    # prior on change values
-    if ( lambda.hyper.prior.form == "lognormal" ) {
-      lnp <- lnp + sum( dlnorm(valuesLambda,speciationRatePriorMean,speciationRatePriorStDev,log=TRUE) )
-    } else if ( lambda.hyper.prior.form == "normal" ) {
-      lnp <- lnp + sum( dnorm(valuesLambda,speciationRatePriorMean,speciationRatePriorStDev,log=TRUE) )
-    } else if ( lambda.hyper.prior.form == "gamma" ) {
-      lnp <- lnp + sum( dgamma(valuesLambda,speciationRatePriorMean,speciationRatePriorStDev,log=TRUE) )
-    }
+     # prior on change values
+     if ( lambda.hyper.prior.form == "lognormal" ) {
+        lnp <- lnp + sum( dlnorm(valuesLambda,speciationRatePriorMean,speciationRatePriorStDev,log=TRUE) )
+     } else if ( lambda.hyper.prior.form == "normal" ) {
+        lnp <- lnp + sum( dnorm(valuesLambda,speciationRatePriorMean,speciationRatePriorStDev,log=TRUE) )
+     } else if ( lambda.hyper.prior.form == "gamma" ) {
+        lnp <- lnp + sum( dgamma(valuesLambda,speciationRatePriorMean,speciationRatePriorStDev,log=TRUE) )
+     }
 
-    #####################
-    ## Extinction Rate ##
-    #####################
+     #####################
+     ## Extinction Rate ##
+     #####################
 
-    # prior on number of changes for mu
-    k <- length(timesMu)
-    lnp <- lnp + dpois(k,numExpectedRateChanges,log=TRUE)
+     # prior on number of changes for mu
+     k <- length(timesMu)
+     lnp <- lnp + dpois(k,numExpectedRateChanges,log=TRUE)
 
-    if ( k > 0 ) {
-      # prior on change times
-      lnp <- lnp + sum( dunif(timesMu,0,AGE,log=TRUE) )
-    }
+     if ( k > 0 ) {
+        # prior on change times
+        lnp <- lnp + sum( dunif(timesMu,0,AGE,log=TRUE) )
+     }
 
-    # prior on change values
-    if ( mu.hyper.prior.form == "lognormal" ) {
-      lnp <- lnp + sum( dlnorm(valuesMu,extinctionRatePriorMean,extinctionRatePriorStDev,log=TRUE) )
-    } else if ( mu.hyper.prior.form == "normal" ) {
-      lnp <- lnp + sum( dnorm(valuesMu,extinctionRatePriorMean,extinctionRatePriorStDev,log=TRUE) )
-    } else if ( mu.hyper.prior.form == "gamma" ) {
-      lnp <- lnp + sum( dgamma(valuesMu,extinctionRatePriorMean,extinctionRatePriorStDev,log=TRUE) )
-    }
+     # prior on change values
+     if ( mu.hyper.prior.form == "lognormal" ) {
+        lnp <- lnp + sum( dlnorm(valuesMu,extinctionRatePriorMean,extinctionRatePriorStDev,log=TRUE) )
+     } else if ( mu.hyper.prior.form == "normal" ) {
+        lnp <- lnp + sum( dnorm(valuesMu,extinctionRatePriorMean,extinctionRatePriorStDev,log=TRUE) )
+     } else if ( mu.hyper.prior.form == "gamma" ) {
+        lnp <- lnp + sum( dgamma(valuesMu,extinctionRatePriorMean,extinctionRatePriorStDev,log=TRUE) )
+     }
 
-    #####################
-    ## Mass-Extinction ##
-    #####################
+     #####################
+     ## Mass-Extinction ##
+     #####################
 
-    # prior on number of changes for mass-extinction events
-    k <- length(timesMassExtinction)
-    lnp <- lnp + dpois(k,numExpectedMassExtinctions,log=TRUE)
+     # prior on number of changes for mass-extinction events
+     k <- length(timesMassExtinction)
+     lnp <- lnp + dpois(k,numExpectedMassExtinctions,log=TRUE)
 
-    if ( k > 0 ) {
-      # prior on change times
-      lnp <- lnp + sum( dunif(timesMassExtinction,0,AGE,log=TRUE) )
+     if ( k > 0 ) {
+        # prior on change times
+        lnp <- lnp + sum( dunif(timesMassExtinction,0,AGE,log=TRUE) )
 
-      # prior on change values
-      lnp <- lnp + sum( dbeta(valuesMassExtinction,pMassExtinctionPriorShape1,pMassExtinctionPriorShape2,log=TRUE) )
-    }
+        # prior on change values
+        lnp <- lnp + sum( dbeta(valuesMassExtinction,pMassExtinctionPriorShape1,pMassExtinctionPriorShape2,log=TRUE) )
+     }
 
-    return (lnp)
+     return (lnp)
 
   }
 
-  AGE <- max( as.numeric( branching.times( tree ) ) )
+  if ( use_tree_sample == TRUE ) {
+     AGE <- max( as.numeric( branching.times( tree[[1]] ) ) )
+     if ( length(tree) > 1 ) {
+        for ( i in 2:length(tree)) AGE <- max( c(AGE, as.numeric( branching.times( tree[[i]] ) ) ) )
+     }
+  } else {
+     AGE <- max( as.numeric( branching.times( tree ) ) )
+  }
 
   # these are the parameters we sample
   posterior <- c()
@@ -395,14 +444,14 @@ tess.analysis <- function( tree,
   ## check if the prior and posterior gives valid probabilities
   MAX_TRIES <- 1000
   for ( i in 1:MAX_TRIES ) {
-    tmpPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,tMassExtinction,pMassExtinction)
-    if ( is.finite(tmpPP) ) break
-    lambdaChangeTimes <- c()
-    lambda <- rlnorm(1,speciationRatePriorMean,speciationRatePriorStDev)
-    muChangeTimes <- c()
-    mu <- rlnorm(1,extinctionRatePriorMean,extinctionRatePriorStDev)
-    tMassExtinction <- c()
-    pMassExtinction <- c()
+     tmpPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,tMassExtinction,pMassExtinction)
+     if ( is.finite(tmpPP) ) break
+     lambdaChangeTimes <- c()
+     lambda <- rlnorm(1,speciationRatePriorMean,speciationRatePriorStDev)
+     muChangeTimes <- c()
+     mu <- rlnorm(1,extinctionRatePriorMean,extinctionRatePriorStDev)
+     tMassExtinction <- c()
+     pMassExtinction <- c()
   }
 
   ## MCMC proposal sizes
@@ -432,14 +481,14 @@ tess.analysis <- function( tree,
   i <- 1
 
   if ( verbose ) {
-    cat("\nPerforming CoMET analysis.\n\n")
-    if( burn > 0 ) {
-      cat("Burning-in the chain ...\n")
-    } else {
-      cat("Running the chain ... \n")
-    }
-    cat("0--------25--------50--------75--------100\n")
-    bar <- txtProgressBar(style=1,width=42)
+     cat("\nPerforming CoMET analysis.\n\n")
+     if( burn > 0 ) {
+        cat("Burning-in the chain ...\n")
+     } else {
+        cat("Running the chain ... \n")
+     }
+     cat("0--------25--------50--------75--------100\n")
+     bar <- txtProgressBar(style=1,width=42)
   }
 
   while ( !finished ) {
@@ -447,35 +496,35 @@ tess.analysis <- function( tree,
     # change the time of an event
     if ( length(lambdaChangeTimes) > 0 ) {
 
-      # compute index of value that will be changed
-      idx <- floor( runif(1,0,length(lambdaChangeTimes)) ) + 1
+       # compute index of value that will be changed
+       idx <- floor( runif(1,0,length(lambdaChangeTimes)) ) + 1
 
-      # store current value
-      t <- lambdaChangeTimes[idx]
+       # store current value
+       t <- lambdaChangeTimes[idx]
 
-      # compute current posterior
-      oldPP <- currentPP
+       # compute current posterior
+       oldPP <- currentPP
 
-      # propose new value
-      tPrime <- rnorm(1,t,deltaLambdaTime)
-      lambdaChangeTimes[idx] <- tPrime
+       # propose new value
+       tPrime <- rnorm(1,t,deltaLambdaTime)
+       lambdaChangeTimes[idx] <- tPrime
 
-      # compute new posterior
-      if ( tPrime > 0 && tPrime < AGE ) {
-        newPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,tMassExtinction,pMassExtinction)
-      } else {
-        newPP <- -Inf
-      }
+       # compute new posterior
+       if ( tPrime > 0 && tPrime < AGE ) {
+          newPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,tMassExtinction,pMassExtinction)
+       } else {
+          newPP <- -Inf
+       }
 
-      # accept/reject
-      if ( is.finite(newPP - oldPP) == FALSE || log( runif(1,0,1) ) > ( newPP - oldPP ) ) {
-        # reject
-        lambdaChangeTimes[idx] <- t
-      } else {
-        currentPP <- newPP
-        lambdaTimeAccepted <- lambdaTimeAccepted + 1
-      }
-      lambdaTimeTried <- lambdaTimeTried + 1
+       # accept/reject
+       if ( is.finite(newPP - oldPP) == FALSE || log( runif(1,0,1) ) > ( newPP - oldPP ) ) {
+          # reject
+          lambdaChangeTimes[idx] <- t
+       } else {
+          currentPP <- newPP
+          lambdaTimeAccepted <- lambdaTimeAccepted + 1
+       }
+       lambdaTimeTried <- lambdaTimeTried + 1
     }
 
     # change the value of an event
@@ -503,102 +552,102 @@ tess.analysis <- function( tree,
 
     # accept/reject
     if ( is.finite(newPP - oldPP + lnHastingsratio) == FALSE || log( runif(1,0,1) ) > ( newPP - oldPP + lnHastingsratio ) ) {
-      # reject
-      lambda[idx] <- v
+       # reject
+       lambda[idx] <- v
     } else {
-      currentPP <- newPP
-      lambdaValueAccepted <- lambdaValueAccepted + 1
+       currentPP <- newPP
+       lambdaValueAccepted <- lambdaValueAccepted + 1
     }
     lambdaValueTried <- lambdaValueTried + 1
 
     if ( estimateNumberRateChanges == TRUE ) {
-      # We need to randomly pick a birth or death move
-      # Otherwise we might give birth and die every time
-      u <- runif(1,0,1)
-      if ( u > 0.5 ) {
-        # birth move
+       # We need to randomly pick a birth or death move
+       # Otherwise we might give birth and die every time
+       u <- runif(1,0,1)
+       if ( u > 0.5 ) {
+          # birth move
 
-        # compute current posterior
-        oldPP <- currentPP
+         # compute current posterior
+         oldPP <- currentPP
 
-        # randomly pick a new time
-        t <- runif(1,0,AGE)
+         # randomly pick a new time
+         t <- runif(1,0,AGE)
 
-        # randomly pick a new value
-        if ( lambda.hyper.prior.form == "lognormal" ) {
-          v <- rlnorm(1,speciationRatePriorMean,speciationRatePriorStDev)
-        } else if ( lambda.hyper.prior.form == "normal" ) {
-          v <- rnorm(1,speciationRatePriorMean,speciationRatePriorStDev)
-        } else if ( lambda.hyper.prior.form == "gamma" ) {
-          v <- rgamma(1,speciationRatePriorMean,speciationRatePriorStDev)
-        }
+         # randomly pick a new value
+         if ( lambda.hyper.prior.form == "lognormal" ) {
+            v <- rlnorm(1,speciationRatePriorMean,speciationRatePriorStDev)
+         } else if ( lambda.hyper.prior.form == "normal" ) {
+            v <- rnorm(1,speciationRatePriorMean,speciationRatePriorStDev)
+         } else if ( lambda.hyper.prior.form == "gamma" ) {
+            v <- rgamma(1,speciationRatePriorMean,speciationRatePriorStDev)
+         }
 
-        # construct the new parameters
-        lambdaChangeTimes[length(lambdaChangeTimes)+1] <- t
-        lambda[length(lambda)+1] <- v
+         # construct the new parameters
+         lambdaChangeTimes[length(lambdaChangeTimes)+1] <- t
+         lambda[length(lambda)+1] <- v
 
-        # compute new posterior
-        newPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,tMassExtinction,pMassExtinction)
+         # compute new posterior
+         newPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,tMassExtinction,pMassExtinction)
 
-        # compute proposal ratio
-        kPrime <- length(lambdaChangeTimes)
-        if ( lambda.hyper.prior.form == "lognormal" ) {
-          pr <- 1 / ( dunif(t,0,AGE) * dlnorm(v,speciationRatePriorMean,speciationRatePriorStDev) )
-        } else if ( lambda.hyper.prior.form == "normal" ) {
-          pr <- 1 / ( dunif(t,0,AGE) * dnorm(v,speciationRatePriorMean,speciationRatePriorStDev) )
-        } else if ( lambda.hyper.prior.form == "gamma" ) {
-          pr <- 1 / ( dunif(t,0,AGE) * dgamma(v,speciationRatePriorMean,speciationRatePriorStDev) )
-        }
+         # compute proposal ratio
+         kPrime <- length(lambdaChangeTimes)
+         if ( lambda.hyper.prior.form == "lognormal" ) {
+            pr <- 1 / ( dunif(t,0,AGE) * dlnorm(v,speciationRatePriorMean,speciationRatePriorStDev) )
+         } else if ( lambda.hyper.prior.form == "normal" ) {
+            pr <- 1 / ( dunif(t,0,AGE) * dnorm(v,speciationRatePriorMean,speciationRatePriorStDev) )
+         } else if ( lambda.hyper.prior.form == "gamma" ) {
+            pr <- 1 / ( dunif(t,0,AGE) * dgamma(v,speciationRatePriorMean,speciationRatePriorStDev) )
+         }
 
-        # accept/reject
-        if ( is.finite(newPP - oldPP + log(pr)) == FALSE || log( runif(1,0,1) ) > ( newPP - oldPP + log( pr ) ) ) {
-          # reject
-          lambdaChangeTimes <- lambdaChangeTimes[-length(lambdaChangeTimes)]
-          lambda <- lambda[-length(lambda)]
-        } else {
-          currentPP <- newPP
-        }
+         # accept/reject
+         if ( is.finite(newPP - oldPP + log(pr)) == FALSE || log( runif(1,0,1) ) > ( newPP - oldPP + log( pr ) ) ) {
+            # reject
+            lambdaChangeTimes <- lambdaChangeTimes[-length(lambdaChangeTimes)]
+            lambda <- lambda[-length(lambda)]
+         } else {
+            currentPP <- newPP
+         }
       } else {
 
-        # death move
-        if ( length(lambdaChangeTimes) > 0 ) {
+         # death move
+         if ( length(lambdaChangeTimes) > 0 ) {
 
-          # compute current posterior
-          oldPP <- currentPP
+            # compute current posterior
+            oldPP <- currentPP
 
-          # randomly pick an index
-          idx <- floor( runif(1,0,length(lambdaChangeTimes)) ) + 1
+            # randomly pick an index
+            idx <- floor( runif(1,0,length(lambdaChangeTimes)) ) + 1
 
-          # store the current value
-          t <- lambdaChangeTimes
-          v <- lambda
+            # store the current value
+            t <- lambdaChangeTimes
+            v <- lambda
 
-          # construct the new parameters
-          lambdaChangeTimes <- lambdaChangeTimes[-idx]
-          lambda <- lambda[-(idx+1)]
+            # construct the new parameters
+            lambdaChangeTimes <- lambdaChangeTimes[-idx]
+            lambda <- lambda[-(idx+1)]
 
-          # compute new posterior
-          newPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,tMassExtinction,pMassExtinction)
+            # compute new posterior
+            newPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,tMassExtinction,pMassExtinction)
 
-          # compute proposal ratio
-          kPrime <- length(lambdaChangeTimes) + 1
-          if ( lambda.hyper.prior.form == "lognormal" ) {
-            pr2 <-  dunif(t[idx],0,AGE) * dlnorm(v[idx+1],speciationRatePriorMean,speciationRatePriorStDev)
-          } else if ( lambda.hyper.prior.form == "normal" ) {
-            pr2 <-  dunif(t[idx],0,AGE) * dnorm(v[idx+1],speciationRatePriorMean,speciationRatePriorStDev)
-          } else if ( lambda.hyper.prior.form == "gamma" ) {
-            pr2 <-  dunif(t[idx],0,AGE) * dgamma(v[idx+1],speciationRatePriorMean,speciationRatePriorStDev)
-          }
+            # compute proposal ratio
+            kPrime <- length(lambdaChangeTimes) + 1
+            if ( lambda.hyper.prior.form == "lognormal" ) {
+               pr2 <-  dunif(t[idx],0,AGE) * dlnorm(v[idx+1],speciationRatePriorMean,speciationRatePriorStDev)
+            } else if ( lambda.hyper.prior.form == "normal" ) {
+               pr2 <-  dunif(t[idx],0,AGE) * dnorm(v[idx+1],speciationRatePriorMean,speciationRatePriorStDev)
+            } else if ( lambda.hyper.prior.form == "gamma" ) {
+               pr2 <-  dunif(t[idx],0,AGE) * dgamma(v[idx+1],speciationRatePriorMean,speciationRatePriorStDev)
+            }
 
-          # accept/reject
-          if ( is.finite(newPP - oldPP + log(pr2)) == FALSE || log( runif(1,0,1) ) > ( newPP - oldPP + log( pr2 ) ) ) {
-            # reject
-            lambdaChangeTimes <- t
-            lambda <- v
-          } else {
-            currentPP <- newPP
-          }
-        }
+            # accept/reject
+            if ( is.finite(newPP - oldPP + log(pr2)) == FALSE || log( runif(1,0,1) ) > ( newPP - oldPP + log( pr2 ) ) ) {
+               # reject
+               lambdaChangeTimes <- t
+               lambda <- v
+            } else {
+               currentPP <- newPP
+            }
+         }
       }
     }
 
