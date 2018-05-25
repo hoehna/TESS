@@ -145,8 +145,6 @@ tess.sim.taxa.age.constant <- function(n,nTaxa,age,lambda,mu,massExtinctionTimes
       nTaxa <- pmin(nTaxa,10000)
     }
     
-#    b <- rho * lambda
-#    d <- mu - lambda *(1-rho)
     b <- lambda
     d <- mu
 
@@ -162,9 +160,8 @@ tess.sim.taxa.age.constant <- function(n,nTaxa,age,lambda,mu,massExtinctionTimes
         
         # for each speciation time
         u           <- runif(nTaxa-x,0,1)
-#        times       <- 1/(b-d)*log((b - d*exp((-b+d)*age) -d*(1-exp((-b+d)*age)) *u )/(b - d*exp((-b+d)*age) -b*(1.0-exp((-b+d)*age)) *u )   )  
-#        times       <- log( 1.0 - u*(1-exp((-b+d)*age)) ) / (d-b)
         times       <- age - ( log( ( (b-d) / (1 - (u)*(1-((b-d)*exp((d-b)*age))/(rho*b+(b*(1-rho)-d)*exp((d-b)*age) ) ) ) - (b*(1-rho)-d) ) / (rho * b) ) + (d-b)*age )  /  (d-b) 
+
 # now we have the vector of speciation times, which just need to be converted to a phylogeny
         times         <- c(sort(times,decreasing=FALSE),age)
         
