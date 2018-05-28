@@ -2,10 +2,21 @@ citHeader("To cite TESS in a publication use:")
 
 citEntry(entry="Article",
 	title = "Fast simulation of reconstructed phylogenies under global time-dependent birth--death processes",
-        author = personList(as.person("S. H{\"o}hna")),
+    author = personList(as.person("S. H{\"o}hna")),
 	journal = "Bioinformatics",
   	year = "2013",
 	volume = "29",
 	number = "11",
-        pages = "1367--1374",
-        textVersion = "H{\"o}hna S. 2013. Fast simulation of reconstructed phylogenies under global time-dependent birth--death processes. Bioinformatics, 29(11) 1367-1374")
+    pages = "1367--1374",
+    textVersion = "H{\"o}hna S. 2013. Fast simulation of reconstructed phylogenies under global time-dependent birth--death processes. Bioinformatics, 29(11) 1367-1374")
+    
+citEntry(entry="Article",
+	title = "TESS: an R package for efficiently simulating phylogenetic trees and performing Bayesian inference of lineage diversification rates",
+    author = personList(as.person("S. H{\"o}hna"), as.person("M.R. May"), as.person("B.R. Moore")),
+	journal = "Bioinformatics",
+  	year = "2016",
+	volume = "32",
+	number = "11",
+    pages = "789--791",
+    textVersion = "H{\"o}hna et al. 2016. TESS: an R package for efficiently simulating phylogenetic trees and performing Bayesian inference of lineage diversification rates. Bioinformatics, 32, 789-791")
+    
