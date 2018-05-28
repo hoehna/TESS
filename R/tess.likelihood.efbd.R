@@ -186,7 +186,7 @@ tess.likelihood.efbd <- function( nodes,
    # add the serial tip age terms
    if ( sum( nodes$fossil_tip ) > 0 ) {
       t <- nodes$ages[ nodes$fossil_tip ]
-      lnl <- lnl + sum( log( fossilization.rate(t) ) + log( E(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) / q(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
+      lnl <- lnl + sum( log( fossilization.rate(t) ) + log( E(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
    }
 
 
