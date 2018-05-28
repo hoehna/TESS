@@ -155,7 +155,7 @@ tess.process.output = function(dir,tree=NULL,numExpectedRateChanges=2,numExpecte
   extinctionRateChangeBayesFactors         <- 2 * log( extinctionRateChangePosteriorModelOdds / extinctionRateChangePriorModelOdds )
 
   # Process the fossilization rates
-  if ( length(grep("FossilizationRateChanges",files,value=TRUE)) == 0 ) {
+  if ( length(grep("FossilizationRateChanges",files,value=TRUE)) > 0 ) {
     fossilizationRateChangeTimes <- strsplit(readLines(grep("FossilizationRateChanges",files,value=TRUE))[-1],"\t")
     fossilizationRates <- strsplit(readLines(grep("FossilizationRates",files,value=TRUE))[-1],"\t")
     fossilizationBurnin <- length(fossilizationRates) * burnin
@@ -212,33 +212,61 @@ tess.process.output = function(dir,tree=NULL,numExpectedRateChanges=2,numExpecte
   x <- criticalBayesFactors * massExtinctionPriorModelOdds
   massExtinctionCriticalPosteriorProbabilities <- x / (1 + x)
   x <- criticalBayesFactors * extinctionRateChangePriorModelOdds
-  speciationRateChangeCriticalPosteriorProbabilities <-
+  speciationRateChangeCriticalPosteriorProbabilities <- x / (1 + x)
   extinctionRateChangeCriticalPosteriorProbabilities <- x / (1 + x)
+  fossilizationRateChangeCriticalPosteriorProbabilities <- x / (1 + x)
 
-  res <- list("posterior" = modelPosteriorProbability,
-              "numSpeciationCategories" = speciationRateCategories,
-              "numExtinctionCategories" = extinctionRateCategories,
-              "numMassExtinctions" = numMassExtinctions,
-              "speciation rates" = processSpeciationRates,
-              "speciation shift times" = processSpeciationRateChangeTimes,
-              "speciation Bayes factors" = speciationRateChangeBayesFactors,
-              "speciationRateChangeCriticalPosteriorProbabilities" = speciationRateChangeCriticalPosteriorProbabilities,
-              "extinction rates" = processExtinctionRates,
-              "extinction shift times" = processExtinctionRateChangeTimes,
-              "extinction Bayes factors" = extinctionRateChangeBayesFactors,
-              "extinctionRateChangeCriticalPosteriorProbabilities" = extinctionRateChangeCriticalPosteriorProbabilities,
-              "fossilization rates" = processFossilizationRates,
-              "fossilization shift times" = processFossilizationRateChangeTimes,
-              "fossilization Bayes factors" = fossilizationRateChangeBayesFactors,
-              "fossilizationRateChangeCriticalPosteriorProbabilities" = fossilizationRateChangeCriticalPosteriorProbabilities,
-              "net-diversification rates" = processNetDiversificationRates,
-              "relative-extinction rates" = processRelativeExtinctionRates,
-              "mass extinction times" = processMassExtinctionTimes,
-              "mass extinction Bayes factors" = massExtinctionBayesFactors,
-              "massExtinctionCriticalPosteriorProbabilities" = massExtinctionCriticalPosteriorProbabilities,
-              "criticalBayesFactors" = criticalBayesFactors,
-              "tree" = tree,
-              "intervals" = rev(intervals) )
+
+  if ( length(grep("FossilizationRateChanges",files,value=TRUE)) > 0 ) {
+  
+     res <- list("posterior" = modelPosteriorProbability,
+                 "numSpeciationCategories" = speciationRateCategories,
+                 "numExtinctionCategories" = extinctionRateCategories,
+                 "numMassExtinctions" = numMassExtinctions,
+                 "speciation rates" = processSpeciationRates,
+                 "speciation shift times" = processSpeciationRateChangeTimes,
+                 "speciation Bayes factors" = speciationRateChangeBayesFactors,
+                 "speciationRateChangeCriticalPosteriorProbabilities" = speciationRateChangeCriticalPosteriorProbabilities,
+                 "extinction rates" = processExtinctionRates,
+                 "extinction shift times" = processExtinctionRateChangeTimes,
+                 "extinction Bayes factors" = extinctionRateChangeBayesFactors,
+                 "extinctionRateChangeCriticalPosteriorProbabilities" = extinctionRateChangeCriticalPosteriorProbabilities,
+                 "fossilization rates" = processFossilizationRates,
+                 "fossilization shift times" = processFossilizationRateChangeTimes,
+                 "fossilization Bayes factors" = fossilizationRateChangeBayesFactors,
+                 "fossilizationRateChangeCriticalPosteriorProbabilities" = fossilizationRateChangeCriticalPosteriorProbabilities,
+                 "net-diversification rates" = processNetDiversificationRates,
+                 "relative-extinction rates" = processRelativeExtinctionRates,
+                 "mass extinction times" = processMassExtinctionTimes,
+                 "mass extinction Bayes factors" = massExtinctionBayesFactors,
+                 "massExtinctionCriticalPosteriorProbabilities" = massExtinctionCriticalPosteriorProbabilities,
+                 "criticalBayesFactors" = criticalBayesFactors,
+                 "tree" = tree,
+                 "intervals" = rev(intervals) )
+   } else {
+  
+     res <- list("posterior" = modelPosteriorProbability,
+                 "numSpeciationCategories" = speciationRateCategories,
+                 "numExtinctionCategories" = extinctionRateCategories,
+                 "numMassExtinctions" = numMassExtinctions,
+                 "speciation rates" = processSpeciationRates,
+                 "speciation shift times" = processSpeciationRateChangeTimes,
+                 "speciation Bayes factors" = speciationRateChangeBayesFactors,
+                 "speciationRateChangeCriticalPosteriorProbabilities" = speciationRateChangeCriticalPosteriorProbabilities,
+                 "extinction rates" = processExtinctionRates,
+                 "extinction shift times" = processExtinctionRateChangeTimes,
+                 "extinction Bayes factors" = extinctionRateChangeBayesFactors,
+                 "extinctionRateChangeCriticalPosteriorProbabilities" = extinctionRateChangeCriticalPosteriorProbabilities,
+                 "net-diversification rates" = processNetDiversificationRates,
+                 "relative-extinction rates" = processRelativeExtinctionRates,
+                 "mass extinction times" = processMassExtinctionTimes,
+                 "mass extinction Bayes factors" = massExtinctionBayesFactors,
+                 "massExtinctionCriticalPosteriorProbabilities" = massExtinctionCriticalPosteriorProbabilities,
+                 "criticalBayesFactors" = criticalBayesFactors,
+                 "tree" = tree,
+                 "intervals" = rev(intervals) )
+   
+   }
 
   return(res)
 
