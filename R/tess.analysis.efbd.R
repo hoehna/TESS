@@ -178,7 +178,7 @@ tess.analysis.efbd <- function( tree,
          max_prob <- -Inf
          
          for (i in 1:NUM_SAMPLED_TREES) {
-            ln_probs[i] <- tess.likelihood.efbd(times[[i]], b, d, f, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
+            ln_probs[i] <- tess.likelihood.efbd(times[[i]], b, d, f, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
             if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
          }
          sum <- 0.0
@@ -187,7 +187,7 @@ tess.analysis.efbd <- function( tree,
          }
          lnl <- log( sum ) + max_prob
       } else {
-         lnl <- tess.likelihood.efbd(times, b, d, f, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
+         lnl <- tess.likelihood.efbd(times, b, d, f, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
       }
       return(lnl)
     }
