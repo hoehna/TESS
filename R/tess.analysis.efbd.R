@@ -215,7 +215,7 @@ tess.analysis.efbd <- function( tree,
         stop("Could not find valid starting values after ",tries," attemps.\n")
     }
 
-    samples <- tess.mcmc( empirical.prior.likelihood,priors,starting.values,logTransforms=c(TRUE,TRUE,TRUE),delta=c(0.1,0.1,0.1),iterations=20000,burnin=2000,verbose=verbose)
+    samples <- tess.mcmc( empirical.prior.likelihood,priors,starting.values,logTransforms=c(TRUE,TRUE,TRUE),delta=c(0.1,0.1,0.1),iterations=2000,burnin=2000,verbose=verbose)
 
     samples.lambda <- samples[,1]/(1-samples[,2])
     m.lambda <- mean(samples.lambda)
@@ -502,11 +502,13 @@ tess.analysis.efbd <- function( tree,
 
   # the "random" starting values
   lambda <- initialSpeciationRate
-  mu <- initialExtinctionRate
-  phi <- initialFossilizationRate
+  mu     <- initialExtinctionRate
+  phi    <- initialFossilizationRate
+  
   lambdaChangeTimes <- initialSpeciationRateChangeTime
-  muChangeTimes <- initialExtinctionRateChangeTime
-  phiChangeTimes <- initialFossilizationRateChangeTime
+  muChangeTimes     <- initialExtinctionRateChangeTime
+  phiChangeTimes    <- initialFossilizationRateChangeTime
+  
   pMassExtinction <- pInitialMassExtinction
   tMassExtinction <- tInitialMassExtinction
   initialPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,phiChangeTimes,phi,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,phi,phiChangeTimes,tMassExtinction,pMassExtinction)
@@ -515,7 +517,7 @@ tess.analysis.efbd <- function( tree,
   ## check if the prior and posterior gives valid probabilities
   MAX_TRIES <- 1000
   for ( i in 1:MAX_TRIES ) {
-     tmpPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,tMassExtinction,pMassExtinction)
+     tmpPP <- prior(lambdaChangeTimes,lambda,muChangeTimes,mu,phiChangeTimes,phi,tMassExtinction,pMassExtinction) + likelihood(lambda,lambdaChangeTimes,mu,muChangeTimes,phi,phiChangeTimes,tMassExtinction,pMassExtinction)
      if ( is.finite(tmpPP) ) break
      lambdaChangeTimes <- c()
      lambda <- rlnorm(1,speciationRatePriorMean,speciationRatePriorStDev)
@@ -639,7 +641,7 @@ tess.analysis.efbd <- function( tree,
     }
     lambdaValueTried <- lambdaValueTried + 1
 
-    if ( estimateNumberRateChanges == TRUE ) {
+    if ( estimateNumberSpeciationRateChanges == TRUE ) {
        # We need to randomly pick a birth or death move
        # Otherwise we might give birth and die every time
        u <- runif(1,0,1)
@@ -801,7 +803,7 @@ tess.analysis.efbd <- function( tree,
     }
     muValueTried <- muValueTried + 1
 
-    if ( estimateNumberRateChanges == TRUE ) {
+    if ( estimateNumberExtinctionRateChanges == TRUE ) {
       # We need to randomly pick a birth or death move
       # Otherwise we might give birth and die every time
 
@@ -964,7 +966,7 @@ tess.analysis.efbd <- function( tree,
     }
     phiValueTried <- phiValueTried + 1
 
-    if ( estimateNumberRateChanges == TRUE ) {
+    if ( estimateNumberFossilizationRateChanges == TRUE ) {
       # We need to randomly pick a birth or death move
       # Otherwise we might give birth and die every time
 
@@ -980,11 +982,11 @@ tess.analysis.efbd <- function( tree,
 
         # randomly pick a new value
         if ( phi.hyper.prior.form == "lognormal" ) {
-          v <- rlnorm(1,extinctionRatePriorMean,extinctionRatePriorStDev)
+          v <- rlnorm(1,fossilizationRatePriorMean,fossilizationRatePriorStDev)
         } else if ( phi.hyper.prior.form == "normal" ) {
-          v <- rnorm(1,extinctionRatePriorMean,extinctionRatePriorStDev)
+          v <- rnorm(1,fossilizationRatePriorMean,fossilizationRatePriorStDev)
         } else if ( phi.hyper.prior.form == "gamma" ) {
-          v <- rgamma(1,extinctionRatePriorMean,extinctionRatePriorStDev)
+          v <- rgamma(1,fossilizationRatePriorMean,fossilizationRatePriorStDev)
         }
 
         # construct the new parameters
@@ -997,11 +999,11 @@ tess.analysis.efbd <- function( tree,
         # compute proposal ratio
         kPrime <- length(phiChangeTimes)
         if ( phi.hyper.prior.form == "lognormal" ) {
-          pr <- 1 / ( dunif(t,0,AGE) * dlnorm(v,extinctionRatePriorMean,extinctionRatePriorStDev) )
+          pr <- 1 / ( dunif(t,0,AGE) * dlnorm(v,fossilizationRatePriorMean,fossilizationRatePriorStDev) )
         } else if ( phi.hyper.prior.form == "normal" ) {
-          pr <- 1 / ( dunif(t,0,AGE) * dnorm(v,extinctionRatePriorMean,extinctionRatePriorStDev) )
+          pr <- 1 / ( dunif(t,0,AGE) * dnorm(v,fossilizationRatePriorMean,fossilizationRatePriorStDev) )
         } else if ( phi.hyper.prior.form == "gamma" ) {
-          pr <- 1 / ( dunif(t,0,AGE) * dgamma(v,extinctionRatePriorMean,extinctionRatePriorStDev) )
+          pr <- 1 / ( dunif(t,0,AGE) * dgamma(v,fossilizationRatePriorMean,fossilizationRatePriorStDev) )
         }
 
         # accept/reject
