@@ -1,4 +1,4 @@
-export(tess.likelihood, tess.likelihood.rateshift, tess.likelihood.rateshift.efbd, tess.analysis, tess.analysis.efbd, tess.nTaxa.expected, tess.mcmc, tess.pathSampling, tess.process.output, tess.plot.output, tess.plot.singlechain.diagnostics, tess.plot.multichain.diagnostics, tess.PosteriorPrediction, tess.PosteriorPredictiveTest, tess.sim.age, tess.sim.taxa.age, tess.sim.taxa,tess.steppingStoneSampling)
+export(tess.likelihood, tess.likelihood.rateshift, tess.likelihood.efbd, tess.analysis, tess.analysis.efbd, tess.nTaxa.expected, tess.mcmc, tess.pathSampling, tess.process.output, tess.plot.output, tess.plot.singlechain.diagnostics, tess.plot.multichain.diagnostics, tess.PosteriorPrediction, tess.PosteriorPredictiveTest, tess.sim.age, tess.sim.taxa.age, tess.sim.taxa,tess.steppingStoneSampling)
 
 import(ape,coda,deSolve)
 
