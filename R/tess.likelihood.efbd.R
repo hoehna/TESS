@@ -187,7 +187,7 @@ cat("1: lnl =",lnl,"\n")
    # add the serial tip age terms
    if ( sum( nodes$fossil_tip ) > 0 ) {
       t <- nodes$ages[ nodes$fossil_tip ]
-      lnl <- lnl + sum( log( fossilization.rate(t) ) + log( p(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) / q(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
+      lnl <- lnl + sum( log( fossilization.rate(t) ) + log( E(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) / q(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
    }
 
 
@@ -200,34 +200,39 @@ cat("1: lnl =",lnl,"\n")
       t <- nodes$ages[ nodes$sampled_ancestor ]
       lnl <- lnl + sum (log( fossilization.rate(t) ) )
    }
-cat("2: lnl =",lnl,"\n")
+#cat("2: lnl =",lnl,"\n")
    
    # add the single lineage propagation terms
    if ( length(rateChangeTimes) >= 1 ) {
-      f <- function(t) nodes$age < t & nodes$age_parent > t
+      f <- function(t) nodes$age < t & nodes$age_parent > t & is.finite(nodes$age_parent)
       survivors <- Vectorize( f )
       div <- colSums( survivors(rateChangeTimes) )
-      lnl <- lnl + sum( div * log( q(rateChangeTimes,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
+#      cat("div =",div,"\n")
+#      cat("D =",log( D(rateChangeTimes,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ),"\n")
+      lnl <- lnl + sum( div * log( D(rateChangeTimes,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
    }
-cat("3: lnl =",lnl,"\n")
+#cat("3: lnl =",lnl,"\n")
    
 
    # add the bifurcation age terms
    t <- nodes$age[ nodes$fossil_tip == FALSE & nodes$tip == FALSE ]
-   lnl <- lnl + sum( log( speciation.rate(t) ) + log( q(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
-cat("4: lnl =",lnl,"\n")
+#    cat("t =",t,"\n")
+#    cat("D =",log( D(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ),"\n")
+   lnl <- lnl + sum( log( speciation.rate(t) ) + log( D(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
+#cat("4: lnl =",lnl,"\n")
    
 
    # add the initial age term
    num_initial_lineages <- ifelse(MRCA == TRUE,1,0)
-   lnl <- lnl + num_initial_lineages * log( q( max(nodes$age),lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes ) )
-cat("5: lnl =",lnl,"\n")
+#cat("D =",log( D(max(nodes$age),lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ),"\n")
+   lnl <- lnl + num_initial_lineages * log( D( max(nodes$age),lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes ) )
+#cat("5: lnl =",lnl,"\n")
 
     # condition on survival
     if ( CONDITION == "survival" )
     {
        num_initial_lineages <- ifelse(MRCA == TRUE,2,1)
-       lnl <- lnl - num_initial_lineages * log( 1.0 - p( max(nodes$age),lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes ) )
+       lnl <- lnl - num_initial_lineages * log( 1.0 - E( max(nodes$age),lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes ) )
     }
 #    // condition on nTaxa
 #    else if ( condition == "nTaxa" )
@@ -266,7 +271,7 @@ cat("5: lnl =",lnl,"\n")
 }
 
 
-p <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
+E <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
 
    idx <- findInterval(t,rateChangeTimes,left.open=TRUE)+1
    
@@ -280,11 +285,10 @@ p <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
 #   cat("d = ",d,"\n")
 #   cat("f = ",f,"\n")
 #   cat("r = ",r,"\n")
-#   cat("ti = ",ti,"\n")
 
-   diff <- b - d - f;
-   bp   <- b*f;
-   dt   <- t - ti;
+   diff <- b - d - f
+   dt   <- t - ti
+#   dt   <- ti - t
     
 
 #    double A = sqrt( diff*diff + 4.0*bp);
@@ -293,24 +297,33 @@ p <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
 #    double e = exp(-A*dt);
 #    double tmp = b + d + f - A * ((1.0+B)-e*(1.0-B))/((1.0+B)+e*(1.0-B));
     
-   A <- sqrt( diff*diff + 4.0*bp)
-   B <- ( (1.0 - 2.0*(1.0-r)*ifelse(ti==0.0,1.0,p(ti, lambda, mu, phi, rho, rateChangeTimes)) )*b + d + f ) / A
+#   A <- sqrt( diff*diff + 4.0*bp)
+#   B <- ( (1.0 - 2.0*(1.0-r)*ifelse(ti==0.0,1.0,p(ti, lambda, mu, phi, rho, rateChangeTimes)) )*b + d + f ) / A
+#  
+#   e <- exp(-A*dt)
+#   tmp <- b + d + f - A * ((1.0+B)-e*(1.0-B))/((1.0+B)+e*(1.0-B))
+   
+   
+    
+   A <- sqrt( diff*diff + 4.0*b*f)
+#   B <- ( (1.0 - 2.0*(1.0-r)*ifelse(ti==0.0,1.0,p(ti, lambda, mu, phi, rho, rateChangeTimes)) )*b + d + f ) / A
+   B <- ( (1.0 - 2.0*ifelse(ti==0.0,1-r,E(ti, lambda, mu, phi, rho, rateChangeTimes)) )*b + d + f ) / A
   
    e <- exp(-A*dt)
    tmp <- b + d + f - A * ((1.0+B)-e*(1.0-B))/((1.0+B)+e*(1.0-B))
+   
+#   cat("E =",(tmp / (2.0*b)),"\n")
+#   cat("tmp =",tmp,"\n")
+#   cat("A =",A,"\n")
   
    return ( tmp / (2.0*b) )
 }
 
 
 
-q <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
+D <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
     
    idx <- findInterval(t,rateChangeTimes,left.open=TRUE)+1
-#   cat("t = ",t,"\n")
-#   cat("times = ",rateChangeTimes,"\n")
-#   cat("birth = ",lambda,"\n")
-#   cat("IDX = ",idx,"\n")
    
    # get the parameters
    b   <- lambda[idx]
@@ -321,9 +334,14 @@ q <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
 #   ti  <- ifelse( (idx-1) >= length(rateChangeTimes), ifelse( length(rateChangeTimes)==0 | idx==1, 0.0, rateChangeTimes[length(rateChangeTimes)] ), rateChangeTimes[idx-1])
 #   cat("ti = ",ti,"\n")
    
-   diff <- b - d - f;
-   bp   <- b*f;
-   dt   <- t - ti;
+   diff <- b - d - f
+   bp   <- b*f
+#   dt   <- t - ti
+   dt   <- ti - t
+
+#   cat("t = ",t,"\n")
+#   cat("ti = ",ti,"\n")
+#   cat("dt = ",dt,"\n")
    
    
 #    double A = sqrt( diff*diff + 4.0*bp);
@@ -334,13 +352,26 @@ q <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
 #    
 #    return 4.0*e / (tmp*tmp);
      
-   A <- sqrt( diff*diff + 4.0*bp)
-   B <- ( (1.0 - 2.0*(1.0-r) * ifelse(ti==0.0,1.0,p(ti, lambda, mu, phi, rho, rateChangeTimes)) ) * b + d + f ) / A
+     
+     
+#   A <- sqrt( diff*diff + 4.0*bp)
+#   B <- ( (1.0 - 2.0*(1.0-r) * ifelse(ti==0.0,1.0,p(ti, lambda, mu, phi, rho, rateChangeTimes)) ) * b + d + f ) / A
+#   
+#   e   <- exp(-A*dt)
+#   tmp <- (1.0+B) + e*(1.0-B)
    
-   e   <- exp(-A*dt)
+   
+   
+   A <- sqrt( diff*diff + 4.0*b*f)
+#   B <- ( (1.0 - 2.0*(1.0-r)*ifelse(ti==0.0,1.0,p(ti, lambda, mu, phi, rho, rateChangeTimes)) )*b + d + f ) / A
+   B <- ( (1.0 - 2.0*ifelse(ti==0.0,1-r,E(ti, lambda, mu, phi, rho, rateChangeTimes)) )*b + d + f ) / A
+  
+   e   <- exp(A*dt)
    tmp <- (1.0+B) + e*(1.0-B)
-   
-   return ( 4.0*e / (tmp*tmp) )
+   tmp2 <- 4.0*e / (tmp*tmp)
+   D2 <- ifelse(ti==0.0,1,D(ti, lambda, mu, phi, rho, rateChangeTimes))
+     
+   return ( tmp2 )
 }
 
 
