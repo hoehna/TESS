@@ -138,12 +138,12 @@ tess.analysis.efbd <- function( tree,
   
   if ( class(tree) == "phylo" ) {
     use_tree_sample = FALSE
-    times <- branching.times(tree)
+    times <- tess.branching.times(tree)
   } else if ( class(tree) == "multiPhylo" ) {
     use_tree_sample = TRUE
     times <- list()
     for (i in 1:length(tree)) {
-      times[[i]] <- branching.times(tree[[i]])
+      times[[i]] <- tess.branching.times(tree[[i]])
     }
     NUM_SAMPLED_TREES <- length(tree)
   }
@@ -193,9 +193,9 @@ tess.analysis.efbd <- function( tree,
     }
 
     if ( use_tree_sample == TRUE ) {
-       prior.diversification <- function(x) { dexp(x,rate=max(times[[1]])/log(length(times[[1]])),log=TRUE) }
+       prior.diversification <- function(x) { dexp(x,rate=max(times[[1]]$age)/log(length(times[[1]]$age)),log=TRUE) }
     } else {
-       prior.diversification <- function(x) { dexp(x,rate=max(times)/log(length(times)),log=TRUE) }
+       prior.diversification <- function(x) { dexp(x,rate=max(times$age)/log(length(times$age)),log=TRUE) }
     }
     prior.turnover <- function(x) { dbeta(x,shape1=1.5,shape2=3,log=TRUE) }
     prior.fossilization <- function(x) { dexp(x,rate=1.0,log=TRUE) }
@@ -470,7 +470,7 @@ tess.analysis.efbd <- function( tree,
   if ( use_tree_sample == TRUE ) {
      AGE <- max( as.numeric( tess.branching.times( tree[[1]] )$age ) )
      if ( length(tree) > 1 ) {
-        for ( i in 2:length(tree)) AGE <- max( c(AGE, as.numeric( tess.branching.times( tree[[i]] )$age ) ) )
+        for ( i in 2:length(tree)) AGE <- min( c(AGE, max(as.numeric( tess.branching.times( tree[[i]] )$age) ) ) )
      }
   } else {
      AGE <- max( as.numeric( tess.branching.times( tree )$age ) )
