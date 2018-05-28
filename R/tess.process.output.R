@@ -65,14 +65,14 @@ tess.process.output = function(dir,tree=NULL,numExpectedRateChanges=2,numExpecte
    if ( class(tree) == "phylo" ) {
       use_tree_sample = FALSE
       times <- branching.times(tree)
-      time <- max( branching.times(tree) )
+      time <- max( tess.branching.times(tree)$age )
    } else if ( class(tree) == "multiPhylo" ) {
       use_tree_sample = TRUE
       times <- list()
-      time <- 0
+      time <- Inf
       for (i in 1:length(tree)) {
-         times[[i]] <- branching.times(tree[[i]])
-         time <- max( c(time,times[[i]]) )
+         times[[i]] <- tess.branching.times(tree[[i]])$age
+         time <- min( c(time, max(times[[i]])) )
       }
       NUM_SAMPLED_TREES <- length(tree)
    }
@@ -154,6 +154,37 @@ tess.process.output = function(dir,tree=NULL,numExpectedRateChanges=2,numExpecte
   extinctionRateChangePriorModelOdds       <- ( extinctionRateChangePriorProbability / (1 - extinctionRateChangePriorProbability) )
   extinctionRateChangeBayesFactors         <- 2 * log( extinctionRateChangePosteriorModelOdds / extinctionRateChangePriorModelOdds )
 
+  # Process the fossilization rates
+  if ( length(grep("FossilizationRateChanges",files,value=TRUE)) == 0 ) {
+    fossilizationRateChangeTimes <- strsplit(readLines(grep("FossilizationRateChanges",files,value=TRUE))[-1],"\t")
+    fossilizationRates <- strsplit(readLines(grep("FossilizationRates",files,value=TRUE))[-1],"\t")
+    fossilizationBurnin <- length(fossilizationRates) * burnin
+
+    processFossilizationRates <- as.mcmc(do.call(rbind,lapply(fossilizationBurnin:length(fossilizationRateChangeTimes),function(sample) {
+      times <- as.numeric(fossilizationRateChangeTimes[[sample]])
+      rates <- as.numeric(fossilizationRates[[sample]])
+      order <- order(times)
+      times <- times[order]
+      rates <- c(rates[1],rates[-1][order])
+      res   <- rates[findInterval(intervals[-1],times)+1]
+      return (res)
+    } )))
+
+    processFossilizationRateChangeTimes <- as.mcmc(do.call(rbind,lapply(1:length(fossilizationRateChangeTimes),function(sample) {
+      times <- sort(as.numeric(fossilizationRateChangeTimes[[sample]]))
+      res <- rep(0,numIntervals)
+      res[findInterval(times,intervals)] <- 1
+      return (res)
+    } )))
+
+    # Compute the Bayes factors for fossilization rate change events
+    fossilizationRateChangePosteriorProbability <- colMeans(processFossilizationRateChangeTimes)
+    fossilizationRateChangePriorProbability     <- 1 - dpois(0,lambda=numExpectedRateChanges/numIntervals)
+    fossilizationRateChangePosteriorModelOdds   <- ( fossilizationRateChangePosteriorProbability / (1 - fossilizationRateChangePosteriorProbability) )
+    fossilizationRateChangePriorModelOdds       <- ( fossilizationRateChangePriorProbability / (1 - fossilizationRateChangePriorProbability) )
+    fossilizationRateChangeBayesFactors         <- 2 * log( fossilizationRateChangePosteriorModelOdds / fossilizationRateChangePriorModelOdds )
+  }
+
   # Process the net-diversification and relative-extinction rates
   processNetDiversificationRates <- as.mcmc(processSpeciationRates-processExtinctionRates)
   processRelativeExtinctionRates <- as.mcmc(processExtinctionRates/processSpeciationRates)
@@ -196,6 +227,10 @@ tess.process.output = function(dir,tree=NULL,numExpectedRateChanges=2,numExpecte
               "extinction shift times" = processExtinctionRateChangeTimes,
               "extinction Bayes factors" = extinctionRateChangeBayesFactors,
               "extinctionRateChangeCriticalPosteriorProbabilities" = extinctionRateChangeCriticalPosteriorProbabilities,
+              "fossilization rates" = processFossilizationRates,
+              "fossilization shift times" = processFossilizationRateChangeTimes,
+              "fossilization Bayes factors" = fossilizationRateChangeBayesFactors,
+              "fossilizationRateChangeCriticalPosteriorProbabilities" = fossilizationRateChangeCriticalPosteriorProbabilities,
               "net-diversification rates" = processNetDiversificationRates,
               "relative-extinction rates" = processRelativeExtinctionRates,
               "mass extinction times" = processMassExtinctionTimes,

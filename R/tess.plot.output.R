@@ -49,6 +49,7 @@
 
 tess.plot.output = function(output,fig.types=c("speciation rates","speciation shift times","speciation Bayes factors",
                                                "extinction rates","extinction shift times","extinction Bayes factors",
+                                               "fossilization rates","fossilization shift times","fossilization Bayes factors",
                                                "net-diversification rates","relative-extinction rates",
                                                "mass extinction times","mass extinction Bayes factors"),
                             xlab="million years ago",col=NULL,col.alpha=50,
@@ -58,6 +59,7 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
   # Check that fig type is valid
   validFigTypes <- c("speciation rates","speciation shift times","speciation Bayes factors",
                      "extinction rates","extinction shift times","extinction Bayes factors",
+                     "fossilization rates","fossilization shift times","fossilization Bayes factors",
                      "net-diversification rates","relative-extinction rates",
                      "mass extinction times","mass extinction Bayes factors")
   invalidFigTypes <- fig.types[!fig.types %in% validFigTypes]
@@ -75,6 +77,9 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
              "extinction rates"="#E41A1C",
              "extinction shift times"="#E41A1C",
              "extinction Bayes factors"="#E41A1C",
+             "fossilization rates"="#E41A1C",
+             "fossilization shift times"="#E41A1C",
+             "fossilization Bayes factors"="#E41A1C",
              "net-diversification rates"="#377EB8",
              "relative-extinction rates"="#FF7F00",
              "mass extinction times"="#4DAF4A",
@@ -86,14 +91,14 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
 
    if ( class(output$tree) == "phylo" ) {
       use_tree_sample = FALSE
-      treeAge <- max( branching.times(output$tree) )
+      treeAge <- max( tess.branching.times(output$tree)$age )
    } else if ( class(output$tree) == "multiPhylo" ) {
       use_tree_sample = TRUE
       times <- list()
       treeAge <- 0
       for (i in 1:length(output$tree)) {
-         times[[i]] <- branching.times(output$tree[[i]])
-         treeAge <- max( c(treeAge,times[[i]]) )
+         times[[i]] <- tess.branching.times(output$tree[[i]])$age
+         treeAge <- min( c(treeAge, max(times[[i]])) )
       }
       NUM_SAMPLED_TREES <- length(output$tree)
    }
