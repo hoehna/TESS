@@ -215,7 +215,7 @@ tess.analysis.efbd <- function( tree,
         stop("Could not find valid starting values after ",tries," attemps.\n")
     }
 
-    samples <- tess.mcmc( empirical.prior.likelihood,priors,starting.values,logTransforms=c(TRUE,TRUE,TRUE),delta=c(0.1,0.1,0.1),iterations=2000,burnin=2000,verbose=verbose)
+    samples <- tess.mcmc( empirical.prior.likelihood,priors,starting.values,logTransforms=c(TRUE,TRUE,TRUE),delta=c(0.1,0.1,0.1),iterations=20000,burnin=2000,verbose=verbose)
 
     samples.lambda <- samples[,1]/(1-samples[,2])
     m.lambda <- mean(samples.lambda)

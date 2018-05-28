@@ -77,9 +77,9 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
              "extinction rates"="#E41A1C",
              "extinction shift times"="#E41A1C",
              "extinction Bayes factors"="#E41A1C",
-             "fossilization rates"="#E41A1C",
-             "fossilization shift times"="#E41A1C",
-             "fossilization Bayes factors"="#E41A1C",
+             "fossilization rates"="#4d2600",
+             "fossilization shift times"="#4d2600",
+             "fossilization Bayes factors"="#4d2600",
              "net-diversification rates"="#377EB8",
              "relative-extinction rates"="#FF7F00",
              "mass extinction times"="#4DAF4A",
@@ -95,7 +95,7 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
    } else if ( class(output$tree) == "multiPhylo" ) {
       use_tree_sample = TRUE
       times <- list()
-      treeAge <- 0
+      treeAge <- Inf
       for (i in 1:length(output$tree)) {
          times[[i]] <- tess.branching.times(output$tree[[i]])$age
          treeAge <- min( c(treeAge, max(times[[i]])) )
@@ -109,7 +109,7 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
   intervalSize <- treeAge/numIntervals
   labels <- pretty(c(0,treeAge))
   labelsAt <- numIntervals - (labels / intervalSize)
-
+  
   for( type in fig.types ) {
 
     if ( grepl("times",type) ) {
