@@ -435,7 +435,7 @@ tess.analysis.efbd <- function( tree,
 
      if ( k > 0 ) {
         # prior on change times
-        lnp <- lnp + sum( dunif(timesMu,0,AGE,log=TRUE) )
+        lnp <- lnp + sum( dunif(timesPhi,0,AGE,log=TRUE) )
      }
 
      # prior on change values
@@ -479,7 +479,8 @@ tess.analysis.efbd <- function( tree,
   # these are the parameters we sample
   posterior <- c()
   kLambda <- c()
-  kMu <- c()
+  kMu     <- c()
+  kPhi    <- c()
   kMassExtinction <- c()
   speciationRateValues <- list()
   speciationRateChangeTimes <- list()
@@ -1363,19 +1364,37 @@ tess.analysis.efbd <- function( tree,
 
       samples <- length(posterior)
 
-      if ( estimateNumberRateChanges == TRUE ) {
+      if ( estimateNumberSpeciationRateChanges == TRUE ) {
         spectralDensityLambda <- spectrum0.ar(kLambda)$spec
-        spectralDensityMu     <- spectrum0.ar(kMu)$spec
-        spectralDensityPhi    <- spectrum0.ar(kPhi)$spec
-        if ( spectralDensityLambda > 0 && spectralDensityMu > 0 && spectralDensityPhi > 0 ) {
+        if ( spectralDensityLambda > 0 ) {
           ess_kLambda <- (var(kLambda) * samples/spectralDensityLambda)
-          ess_kMu  <- (var(kMu) * samples/spectralDensityMu)
-          ess_kPhi <- (var(kPhi) * samples/spectralDensityPhi)
         } else {
-          ess_kLambda <- ess_kMu <- ess_kPhi <- Inf
+          ess_kLambda <- Inf
         }
       } else {
-        ess_kLambda <- ess_kMu <- ess_kPhi <- Inf
+        ess_kLambda <- Inf
+      }
+
+      if ( estimateNumberExtinctionRateChanges == TRUE ) {
+        spectralDensityMu     <- spectrum0.ar(kMu)$spec
+        if ( spectralDensityMu > 0 ) {
+          ess_kMu  <- (var(kMu) * samples/spectralDensityMu)
+        } else {
+          ess_kMu <- Inf
+        }
+      } else {
+         ess_kMu <- Inf
+      }
+
+      if ( estimateNumberFossilizationRateChanges == TRUE ) {
+        spectralDensityPhi    <- spectrum0.ar(kPhi)$spec
+        if ( spectralDensityPhi > 0 ) {
+          ess_kPhi <- (var(kPhi) * samples/spectralDensityPhi)
+        } else {
+          ess_kPhi <- Inf
+        }
+      } else {
+        ess_kPhi <- Inf
       }
 
       spec <- c()
