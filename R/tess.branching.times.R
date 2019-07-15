@@ -33,7 +33,7 @@
 #
 ################################################################################
 
-tess.branching.times <- function(phy, tip.age.threshold=0.01) {
+tess.branching.times <- function(phy, tip.age.threshold=1e-5) {
 
   # Do it recursively  
   fx <- function(phy, node, cur_time, nodes) {
@@ -84,3 +84,40 @@ tess.branching.times <- function(phy, tip.age.threshold=0.01) {
 }
 
 
+################################################################################
+# Compute how many lineages are active at time t in the reconstructed phylogeny.
+#  Allows for non-ultrametric (fossil) trees.
+#
+# Uses nodes object from tess.branching.times.
+#
+################################################################################
+
+tess.num.active.lineages <- function(nodes,t) {
+  if (t > max(nodes$age)) {
+    return(0)
+  } else {
+    n_born_before <- sum(nodes$age[!(nodes$tip | nodes$fossil_tip | nodes$sampled_ancestor)] > t)
+    n_died_before <- sum(nodes$age[nodes$fossil_tip] > t)
+    return(1 + n_born_before - n_died_before)
+  }
+}
+
+
+################################################################################
+# Compute probability of any arbitrary topology under any non-lineage-specific BDP.
+#  Allows for non-ultrametric (fossil) trees.
+#
+# Uses nodes object from tess.branching.times.
+#
+################################################################################
+
+tess.topology.probability <- function(nodes, log=TRUE) {
+  lnl <- (sum(nodes$tip) + sum(nodes$fossil_tip) - 1) * log(2) - 
+    lfactorial(sum(nodes$sampled_ancestor) + sum(nodes$tip) + sum(nodes$fossil_tip))
+  
+  if ( log == FALSE ) {
+    lnl <- exp(lnl)
+  }
+  
+  return(lnl)
+}
