@@ -92,7 +92,11 @@ tess.likelihood.bdstp <- function( nodes,
     
     # Necessary functions
     A <- abs(sqrt((lambda - mu - phi)^2 + 4*lambda*phi))
-    C <- 1 - samplingProbability
+    if (abs(1 - samplingProbability) > .Machine$double.eps) {
+      C <- 1 - samplingProbability
+    } else {
+      C <- 1
+    }
     B <- ((1 - 2*C) * lambda + mu + phi)/A
     
     E <- function(t) {

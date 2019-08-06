@@ -438,9 +438,9 @@ precomputeVectors <- function(changeTimes,
   
   ABCDE$A[1] <- sqrt((lambda[1] - mu[1] - phi[1])^2 + 4 * lambda[1] * phi[1])
   if ( abs(eventSamplingProbabilities[1] - 1) > .Machine$double.eps ) {
-    ABCDE$C[1] <- 1.0
-  } else {
     ABCDE$C[1] <- 1.0 - eventSamplingProbabilities[1]
+  } else {
+    ABCDE$C[1] <- 1.0
   }
   ABCDE$B[1] <- ((1 - 2 * ABCDE$C[1]) * lambda[1] + mu[1] + phi[1]) / ABCDE$A[1]
   ABCDE$D_minus[1] <- 1.0
