@@ -170,7 +170,7 @@ tess.ode.piecewise <- function(lambda, mu, times, t.crit, t.crit.p) {
   # add a final point slightly over the given time interval. we need this so that some of the numerical routines do not break when calling r(t).
   xx <- c(-1E-4 ,xx, tmax + 1e-8)
   r_points <- c(0,r_points,r_points[length(r_points)])
-  rate <- approxfun(xx,r_points)
+  rate <- approxfun(xx,r_points, ties = mean)
 
   # compute the integral int_{x}^{T} mu(t)*exp(r(t)) dt
   f <- function(t) pmin(mu(t)*exp(rate(t)),1E100)
@@ -187,7 +187,7 @@ tess.ode.piecewise <- function(lambda, mu, times, t.crit, t.crit.p) {
       probs[i-1] <- probs[i-1] - (t.crit.p[[event]]-1)*exp(rate(t.crit[[event]]))
     }
   }
-  surv <- approxfun(xx,probs)
+  surv <- approxfun(xx,probs, ties = mean)
 
   list(r=rate,s=surv)
 }
