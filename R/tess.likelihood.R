@@ -99,6 +99,14 @@ tess.likelihood <- function(times,
     } else {
       extinction <- mu
     }
+    
+    # test if rate functions return numeric values for all branch times
+    for (f in c(speciation, extinction)){
+      r <- f(times)
+      if (any(is.infinite(r))){
+        stop("Rate function does not evaluate as finite for the given branch times.")
+      }
+    }
 
     p <- tess.likelihood.function(times,speciation,extinction,massExtinctionTimes,massExtinctionSurvivalProbabilities,missingSpecies,timesMissingSpecies,c(),samplingProbability,samplingStrategy,MRCA,CONDITION,log)
 
@@ -299,7 +307,7 @@ tess.likelihood.function <- function(times,
   }
 
   # prepare the integrals
-  tryCatch({
+  #tryCatch({
     approxFuncs <- tess.prepare.pdf(lambda,mu,massExtinctionTimes,massExtinctionSurvivalProbabilities,PRESENT,c(t.crit,times),TRUE)
 
   # initialize the log likelihood
@@ -356,13 +364,12 @@ tess.likelihood.function <- function(times,
 
   }
 
-
   # multiply the probability for each speciation time
   if ( length(times) > 0 ) {
     lnl <- lnl + sum(log(lambda(times)) + tess.equations.p1.fastApprox(approxFuncs$r,approxFuncs$s,rho,times,PRESENT,log=TRUE))
   }
-
-  }, warning = function(w) {  }, error = function(e) { })
+    
+  #}, warning = function(w) { }, error = function(e) { })
 
   if ( log == FALSE ) {
     lnl <- exp(lnl)
