@@ -52,7 +52,7 @@ tess.analysis.efbd(
 )
 }
 \arguments{
-\item{tree}{the tree}
+\item{tree}{the phylogeny}
 
 \item{initialSpeciationRate}{The initial value of the speciation rate when the MCMC is started.}
 
@@ -141,7 +141,7 @@ tess.analysis.efbd(
 \item{verbose}{Do we want to print the progress of the MCMC?}
 }
 \value{
-
+nothing. outputs are written to the file system
 }
 \description{
 Running an analysis on a given tree and estimating the diversification rates including rate-shifts and mass-extinction events.

@@ -1,6 +1,7 @@
 export(tess.likelihood, 
        tess.likelihood.rateshift, 
        tess.likelihood.efbd, 
+       tess.likelihood.bdstp,
        tess.analysis, 
        tess.analysis.efbd,
        tess.nTaxa.expected, 

@@ -179,8 +179,8 @@ tess.likelihood.efbd <- function( nodes,
          return ( phi[idx] )
       }
    } else {
-      speciation.rate     <- function(times) rep(lambda[1],length(times))
-      fossilization.rate  <- function(times) rep(phi[1],length(times))
+      speciation.rate     <- function(t) rep(lambda[1],length(t))
+      fossilization.rate  <- function(t) rep(phi[1],length(t))
    }
    
    # add the serial tip age terms
