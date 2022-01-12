@@ -5,9 +5,14 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // equations_pSurvival_rateshift_CPP
 NumericVector equations_pSurvival_rateshift_CPP(NumericVector lambda, NumericVector mu, NumericVector rateChangeTimes, NumericVector massExtinctionSurvivalProbabilities, double samplingProbability, NumericVector t_low, double t_high, double T, bool log);
-RcppExport SEXP TESS_equations_pSurvival_rateshift_CPP(SEXP lambdaSEXP, SEXP muSEXP, SEXP rateChangeTimesSEXP, SEXP massExtinctionSurvivalProbabilitiesSEXP, SEXP samplingProbabilitySEXP, SEXP t_lowSEXP, SEXP t_highSEXP, SEXP TSEXP, SEXP logSEXP) {
+RcppExport SEXP _TESS_equations_pSurvival_rateshift_CPP(SEXP lambdaSEXP, SEXP muSEXP, SEXP rateChangeTimesSEXP, SEXP massExtinctionSurvivalProbabilitiesSEXP, SEXP samplingProbabilitySEXP, SEXP t_lowSEXP, SEXP t_highSEXP, SEXP TSEXP, SEXP logSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -26,7 +31,7 @@ END_RCPP
 }
 // equations_p1_rateshift_CPP
 NumericVector equations_p1_rateshift_CPP(NumericVector lambda, NumericVector mu, NumericVector rateChangeTimes, NumericVector massExtinctionSurvivalProbabilities, double samplingProbability, NumericVector t, double T, bool log);
-RcppExport SEXP TESS_equations_p1_rateshift_CPP(SEXP lambdaSEXP, SEXP muSEXP, SEXP rateChangeTimesSEXP, SEXP massExtinctionSurvivalProbabilitiesSEXP, SEXP samplingProbabilitySEXP, SEXP tSEXP, SEXP TSEXP, SEXP logSEXP) {
+RcppExport SEXP _TESS_equations_p1_rateshift_CPP(SEXP lambdaSEXP, SEXP muSEXP, SEXP rateChangeTimesSEXP, SEXP massExtinctionSurvivalProbabilitiesSEXP, SEXP samplingProbabilitySEXP, SEXP tSEXP, SEXP TSEXP, SEXP logSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -41,4 +46,15 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(equations_p1_rateshift_CPP(lambda, mu, rateChangeTimes, massExtinctionSurvivalProbabilities, samplingProbability, t, T, log));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_TESS_equations_pSurvival_rateshift_CPP", (DL_FUNC) &_TESS_equations_pSurvival_rateshift_CPP, 9},
+    {"_TESS_equations_p1_rateshift_CPP", (DL_FUNC) &_TESS_equations_p1_rateshift_CPP, 8},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_TESS(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

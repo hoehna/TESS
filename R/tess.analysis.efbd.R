@@ -1,79 +1,96 @@
-################################################################################
-#
-# tess.analysis.R
-#
-# Copyright (c) 2012- Sebastian Hoehna
-#
-# This file is part of TESS.
-# See the NOTICE file distributed with this work for additional
-# information regarding copyright ownership and licensing.
-#
-# TESS is free software; you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-#  TESS is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with TESS; if not, write to the
-# Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
-# Boston, MA  02110-1301  USA
-#
-################################################################################
-
-################################################################################
-#
-# @brief Running an analysis on a given tree and estimating the diversification
-#        rates including rate-shifts and mass-extinction events.
-#
-# @date Last modified: 2014-10-05
-# @author Sebastian Hoehna
-# @version 2.0
-# @since 2012-09-22, version 2.0
-#
-# @param    tree                                          phylo         the tree
-# @param    tree                                          phylo         the tree
-# @param    initialSpeciationRate                         vector        The initial value of the speciation rate when the MCMC is started.
-# @param    initialExtinctionRate                         vector        The initial value of the extinction rate when the MCMC is started.
-# @param    speciationRatePriorMean                       scalar        mean parameter for the lognormal prior on lambda
-# @param    speciationRatePriorStDev                      scalar        variance parameter for the lognormal prior on lambda
-# @param    extinctionRatePriorMean                       scalar        mean parameter for the lognormal prior on mu
-# @param    extinctionRatePriorStDev                      scalar        variance parameter for the lognormal prior on mu
-# @param    initialSpeciationRateChangeTime               vector        The initial value of the time points when speciation rate-shifts occur.
-# @param    initialExtinctionRateChangeTime               vector        The initial value of the time points when speciation rate-shifts occur.
-# @param    estimateNumberRateChanges                     boolean       Do we estimate the number of rate shifts?
-# @param    numExpectedRateChanges                        scalar        Expected number of rate changes which follow a Poisson process.
-# @param    samplingProbability                           scalar        probability of uniform sampling at present
-# @param    samplingStrategy                              string        Which strategy was used to obtain the samples (taxa). Options are: uniform|diversified|age
-# @param    missingSpecies                                vector        The number of species missed which originated in a given time interval (empirical taxon sampling)
-# @param    timesMissingSpecies                           vector        The times intervals of the missing species (empirical taxon sampling)
-# @param    tInitialMassExtinction                        vector        The initial value of the vector of times of the mass-extinction events.
-# @param    pInitialMassExtinction                        vector        The initial value of the vector of survival probabilities of the mass-extinction events.
-# @param    pMassExtinctionPriorShape1                    scalar        The alpha (first shape) parameter of the Beta prior distribution for the survival probability of a mass-extinction event.
-# @param    pMassExtinctionPriorShape2                    scalar        The beta (second shape) parameter of the Beta prior distribution for the survival probability of a mass-extinction event.
-# @param    estimateMassExtinctionTimes                   boolean       Do we estimate the times of mass-extinction events?
-# @param    numExpectedMassExtinctions                    scalar        Expected number of mass-extinction events which follow a Poisson process.
-# @param    estimateNumberMassExtinctions                 boolean       Do we estimate the number of mass-extinction events?
-# @param    MRCA                                          boolean       does the tree start at the mrca?
-# @param    CONDITITON                                    string        do we condition the process on nothing|survival|taxa?
-# @param    MAX_ITERATIONS                                scalar        The maximum number of iteration of the MCMC.
-# @param    THINNING                                      scalar        The frequency how often samples are recorded during the MCMC.
-# @param    OPTIMIZATION_FREQUENCY                        scalar        The frequency how often the MCMC moves are optimized
-# @param    CONVERGENCE_FREQUENCY                         scalar        The frequency how often we check for convergence?
-# @param    MAX_TIME                                      scalar        The maximum time the MCMC is allowed to run in seconds.
-# @param    MIN_ESS                                       scalar        The minimum number of effective samples (ESS) to assume convergence.
-# @param    ADAPTIVE                                      scalar        Do we use auto-tuning of the MCMC moves?
-# @param    dir                                           string        The subdirectory in which the output will be stored.
-# @param    priorOnly                                     boolean       Do we sample from the prior only?
-# @param    verbose                                       boolean       Do we want to print the progress of the MCMC?
-#
-################################################################################
-
-
+#' tess.analysis.efbd
+#' 
+#' @description Running an analysis on a given tree and estimating the diversification rates including rate-shifts and mass-extinction events.
+#'
+#' @param tree the phylogeny
+#' @param initialSpeciationRate  The initial value of the speciation rate when the MCMC is started.
+#' @param initialExtinctionRate  The initial value of the extinction rate when the MCMC is started.
+#' @param initialFossilizationRate  The initial value of the fossilization rate when the MCMC is started.
+#' @param empiricalHyperPriors .
+#' @param empiricalHyperPriorInflation .
+#' @param empiricalHyperPriorForm .
+#' @param speciationRatePriorMean mean parameter for the lognormal prior on lambda
+#' @param speciationRatePriorStDev standard deviation for the lognormal prior on lambda
+#' @param extinctionRatePriorMean mean parameter for the lognormal prior on mu
+#' @param extinctionRatePriorStDev standard deviation for the lognormal prior on mu
+#' @param fossilizationRatePriorMean mean parameter for the lognormal prior on phi
+#' @param fossilizationRatePriorStDev standard deviation for the lognormal prior on phi
+#' @param initialSpeciationRateChangeTime The initial value of the time points when speciation rate-shifts occur.
+#' @param initialExtinctionRateChangeTime The initial value of the time points when extinction rate-shifts occur.
+#' @param initialFossilizationRateChangeTime The initial value of the time points when fossilization rate-shifts occur.
+#' @param estimateNumberSpeciationRateChanges Do we estimate the number of rate shifts?
+#' @param estimateNumberExtinctionRateChanges Do we estimate the number of rate shifts?
+#' @param estimateNumberFossilizationRateChanges Do we estimate the number of rate shifts?
+#' @param numExpectedRateChanges Expected number of rate changes which follow a Poisson process.
+#' @param samplingProbability probability of uniform sampling at present
+#' @param samplingStrategy Which strategy was used to obtain the samples (taxa). Options are: uniform|diversified|age
+#' @param missingSpecies The number of species missed which originated in a given time interval (empirical taxon sampling)
+#' @param timesMissingSpecies The times intervals of the missing species (empirical taxon sampling)
+#' @param tInitialMassExtinction The initial value of the vector of times of the mass-extinction events.
+#' @param pInitialMassExtinction The initial value of the vector of survival probabilities of the mass-extinction events.
+#' @param pMassExtinctionPriorShape1 The alpha (first shape) parameter of the Beta prior distribution for the survival probability of a mass-extinction event.
+#' @param pMassExtinctionPriorShape2 The beta (second shape) parameter of the Beta prior distribution for the survival probability of a mass-extinction event.
+#' @param estimateMassExtinctionTimes Do we estimate the times of mass-extinction events?
+#' @param numExpectedMassExtinctions Expected number of mass-extinction events which follow a Poisson process.
+#' @param estimateNumberMassExtinctions Do we estimate the number of mass-extinction events?
+#' @param MRCA does the tree start at the mrca?
+#' @param CONDITION do we condition the process on nothing|survival|taxa?
+#' @param BURNIN number of starting iterations to be dropped
+#' @param MAX_ITERATIONS The maximum number of iteration of the MCMC.
+#' @param THINNING The frequency how often samples are recorded during the MCMC.
+#' @param OPTIMIZATION_FREQUENCY The frequency how often the MCMC moves are optimized
+#' @param CONVERGENCE_FREQUENCY The frequency how often we check for convergence?
+#' @param MAX_TIME The maximum time the MCMC is allowed to run in seconds.
+#' @param MIN_ESS The minimum number of effective samples (ESS) to assume convergence.
+#' @param ADAPTIVE Do we use auto-tuning of the MCMC moves?
+#' @param dir The subdirectory in which the output will be stored.
+#' @param priorOnly Do we sample from the prior only?
+#' @param verbose Do we want to print the progress of the MCMC?
+#'
+#' @return nothing. outputs are written to the file system
+#' @export
+#'
+#' @examples
+#' # we load the conifers as the test data set
+#' data(conifers)
+#' 
+#' # for the conifers we know what the total number of species is
+#' total <- 630
+#' # thus, we can compute what the sampling fraction is
+#' rho <- (conifers$Nnode+1)/total
+#' 
+#' 
+#' # next, we specify the prior mean and standard deviation
+#' # for the speciation and extinction rate
+#' mu_lambda = 0.15
+#' std_lambda = 0.02
+#' mu_mu = 0.09
+#' std_mu = 0.02
+#' mu_phi = 0.10
+#' std_phi = 0.02
+#' 
+#' 
+#' 
+#' # now we can run the entire analysis.
+#' # note that a full analyses should be run much longer
+#' tess.analysis.efbd( tree=conifers,
+#'                     initialSpeciationRate = exp(mu_lambda),
+#'                     initialExtinctionRate = exp(mu_mu),
+#'                     initialFossilizationRate = exp(mu_phi),
+#'                     empiricalHyperPriors = FALSE,
+#'                     speciationRatePriorMean = mu_lambda,
+#'                     speciationRatePriorStDev = std_lambda,
+#'                     extinctionRatePriorMean = mu_mu,
+#'                     extinctionRatePriorStDev = std_mu,
+#'                     fossilizationRatePriorMean = mu_phi,
+#'                     fossilizationRatePriorStDev = std_phi,
+#'                     numExpectedRateChanges = 2,
+#'                     samplingProbability = rho,
+#'                     numExpectedMassExtinctions = 2,
+#'                     BURNIN = 100,
+#'                     MAX_ITERATIONS = 200,
+#'                     THINNING = 10,
+#'                     dir = "analysis_conifer")
 tess.analysis.efbd <- function( tree,
                            initialSpeciationRate,
                            initialExtinctionRate,

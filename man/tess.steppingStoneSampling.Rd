@@ -5,7 +5,7 @@
 \description{tess.steppingStoneSampling uses a power posterior series and stepping-stone-sampling to estimate the marginal likelihood of a model. }
 \usage{
 tess.steppingStoneSampling(likelihoodFunction,priors,parameters,logTransforms,
-                           iterations,burnin=round(iterations/3),K=50)
+                           iterations,burnin=round(iterations/3),K=50,verbose=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -16,6 +16,7 @@ tess.steppingStoneSampling(likelihoodFunction,priors,parameters,logTransforms,
   \item{iterations}{The number of iterations for the MCMC.}
   \item{burnin}{The number of iterations to burn before starting the MCMC.}
   \item{K}{The number of stepping stones.}
+  \item{verbose}{Whether to print diagnostic outputs.}
 }
 \value{Returns the posterior samples for the parameters.}
 \references{Xie et al., 2011: Improving marginal likelihood estimation for Bayesian phylogenetic model selection

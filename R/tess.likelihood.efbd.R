@@ -36,16 +36,17 @@
 # @version 5.0
 # @since 2018-05-25, version 3.0
 #
-# @param    times                                         vector        vector of branching times
 # @param    times                                         vector        branching times
 # @param    lambda                                        vector        speciation rates
 # @param    mu                                            vector        extinction rates
-# @param    rateChangeTimesLambda                         vector        speciation rates
-# @param    rateChangeTimesMu                             vector        extinction rates
+# @param    phi                                           vector        fossilization rates
+# @param    rateChangeTimesLambda                         vector        speciation times
+# @param    rateChangeTimesMu                             vector        extinction times
+# @param    rateChangeTimesPhi                            vector        fossilization times
 # @param    massExtinctionTimes                           vector        time at which mass-extinctions happen
 # @param    massExtinctionSurvivalProbabilities           vector        survival probability of a mass extinction event
-# @param    samplingProbability                           scalar        probability of uniform sampling at present
 # @param    samplingStrategy                              string        Which strategy was used to obtain the samples (taxa). Options are: uniform|diversified|age
+# @param    samplingProbability                           scalar        probability of uniform sampling at present
 # @param    MRCA                                          boolean       does the tree start at the mrca?
 # @param    CONDITITON                                    string        do we condition the process on nothing|survival|taxa?
 # @param    log                                           boolean       likelhood in log-scale?
@@ -53,7 +54,6 @@
 # @return                                                 scalar        probability of the speciation times
 #
 ################################################################################
-
 tess.likelihood.efbd <- function( nodes,
                                   lambda,
                                   mu,
@@ -194,8 +194,8 @@ tess.likelihood.efbd <- function( nodes,
          return ( phi[idx] )
       }
    } else {
-      speciation.rate     <- function(times) rep(lambda[1],length(times))
-      fossilization.rate  <- function(times) rep(phi[1],length(times))
+      speciation.rate     <- function(t) rep(lambda[1],length(t))
+      fossilization.rate  <- function(t) rep(phi[1],length(t))
    }
 
    # add the serial tip age terms
