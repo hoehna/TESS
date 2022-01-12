@@ -42,20 +42,28 @@
 # @param    xaxt              character     The type of x-axis to plot. By default, no x-axis is plotted (recommended).
 # @param    yaxt              character     The type of y-axis to plot.
 # @param    pch               integer       The type of points to draw (if points are drawn).
+# @param    plot.tree         boolean       Whether to plot the tree
 # @param    ...                             Parameters delegated to various plotting functions.
 #
 #
 ################################################################################
 
-tess.plot.output = function(output,fig.types=c("speciation rates","speciation shift times","speciation Bayes factors",
-                                               "extinction rates","extinction shift times","extinction Bayes factors",
-                                               "fossilization rates","fossilization shift times","fossilization Bayes factors",
-                                               "net-diversification rates","relative-extinction rates",
-                                               "mass extinction times","mass extinction Bayes factors"),
-                            xlab="million years ago",col=NULL,col.alpha=50,
-                            xaxt="n",yaxt="s",pch=19,plot.tree=FALSE,
+tess.plot.output = function(output,
+                            fig.types=c("speciation rates","speciation shift times","speciation Bayes factors",
+                                        "extinction rates","extinction shift times","extinction Bayes factors",
+                                        "fossilization rates","fossilization shift times","fossilization Bayes factors",
+                                        "net-diversification rates","relative-extinction rates",
+                                        "mass extinction times","mass extinction Bayes factors"),
+                            xlab="million years ago",
+                            col=NULL,
+                            col.alpha=50,
+                            xaxt="n",
+                            yaxt="s",
+                            pch=19,
+                            plot.tree=FALSE,
                             ...){
-
+  old_par <- par(no.readonly = TRUE)
+  
   # Check that fig type is valid
   validFigTypes <- c("speciation rates","speciation shift times","speciation Bayes factors",
                      "extinction rates","extinction shift times","extinction Bayes factors",
@@ -63,6 +71,9 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
                      "net-diversification rates","relative-extinction rates",
                      "mass extinction times","mass extinction Bayes factors")
   invalidFigTypes <- fig.types[!fig.types %in% validFigTypes]
+  
+  ## Remove variables that were not part of analysis (e.g. fossilization rates)
+  fig.types <- fig.types[fig.types %in% names(output)]
 
   if ( length( invalidFigTypes ) > 0 ) {
     stop("\nThe following figure types are invalid: ",paste(invalidFigTypes,collapse=", "),".",
@@ -144,9 +155,9 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
       axis(1,at=labelsAt,labels=labels)
 
     } else {
-
       thisOutput <- output[[type]]
       meanThisOutput <- colMeans(thisOutput)
+
       quantilesThisOutput <- apply(thisOutput,2,quantile,prob=c(0.025,0.975))
       if( type %in% c("speciation rates","extinction rates")){
         quantilesSpeciation <- apply(output[["speciation rates"]],2,quantile,prob=c(0.025,0.975))
@@ -167,5 +178,5 @@ tess.plot.output = function(output,fig.types=c("speciation rates","speciation sh
     }
 
   }
-
+  par(old_par)
 }
