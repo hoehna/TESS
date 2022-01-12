@@ -33,6 +33,18 @@
 #
 ################################################################################
 
+#' Title
+#'
+#' @param phy the phylogeny
+#' @param tip.age.threshold threshold to be considered an extant tip (not fossil)
+#'
+#' @return a list with items c("sampled_ancestor", "fossil_tip", "age_parent", "age", "tip")
+#' @export
+#'
+#' @examples
+#' data(conifers)
+#' 
+#' nodes <- tess.branching.times(conifers)
 tess.branching.times <- function(phy, tip.age.threshold=1e-5) {
 
   # Do it recursively  
