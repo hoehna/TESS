@@ -24,43 +24,55 @@
 # Boston, MA  02110-1301  USA
 #
 ################################################################################
-
-
-
-################################################################################
-#
-# @brief Computation of the likelihood for a given tree under an episodic fossilized-birth-death model (i.e. piecewise constant rates).
-#
-# @date Last modified: 2018-05-25
-# @author Sebastian Hoehna
-# @version 5.0
-# @since 2018-05-25, version 3.0
-#
-# @param    nodes                                         list          node times from tess.branching.times
-# @param    lambda                                        vector        birth (speciation or infection) rates
-# @param    mu                                            vector        death (extinction or becoming non-infectious without treatment) rates
-# @param    phi                                           vector        serial sampling (fossilization) rates
-# @param    r                                             vector        treatment probability, Pr(death | sample) (does not apply to samples take at time 0)
-# @param    rateChangeTimesLambda                         vector        times at which birth rates change
-# @param    rateChangeTimesMu                             vector        times at which death rates change
-# @param    rateChangeTimesPhi                            vector        times at which serial sampling rates change
-# @param    rateChangeTimesR                              vector        times at which treatment probabilities change
-# @param    burstBirthTimes                               vector        time at which burst birth-events happen
-# @param    burstBirthProbabilities                       vector        probability of a lineage giving birth to a new lineage in a burst birth event
-# @param    massDeathTimes                                vector        time at which mass-deaths (mass-extinctions) happen
-# @param    massDeathProbabilities                        vector        probability of a lineage dying in a mass-death event
-# @param    eventSamplingTimes                            vector        time at which every lineage in the tree may be sampled
-# @param    eventSamplingProbabilities                    vector        probability of a lineage being sampled at an event sampling time
-# @param    samplingProbabilityAtPresent                  scalar        probability of uniform sampling at present
-# @param    samplingStrategyAtPresent                     string        Which strategy was used to obtain the samples (taxa). Options are: uniform|diversified|age
-# @param    MRCA                                          boolean       does the tree start at the mrca?
-# @param    CONDITITON                                    string        do we condition the process on nothing|survival|taxa?
-# @param    log                                           boolean       likelhood in log-scale?
-
-# @return                                                 scalar        probability of the speciation times
-#
-################################################################################
-
+#' tess.likelihood.ebdstp
+#'
+#' @description Computation of the likelihood for a given tree under an episodic fossilized-birth-death model (i.e. piecewise constant rates).
+#'
+#' @param nodes node times from tess.branching.times
+#' @param lambda birth (speciation or infection) rates
+#' @param mu death (extinction or becoming non-infectious without treatment) rates
+#' @param phi serial sampling (fossilization) rates
+#' @param r treatment probability, Pr(death | sample) (does not apply to samples take at time 0)
+#' @param rateChangeTimesLambda times at which birth rates change
+#' @param rateChangeTimesMu times at which death rates change
+#' @param rateChangeTimesPhi times at which serial sampling rates change
+#' @param rateChangeTimesR times at which treatment probabilities change
+#' @param massDeathTimes time at which mass-deaths (mass-extinctions) happen
+#' @param massDeathProbabilities probability of a lineage dying in a mass-death event
+#' @param burstBirthTimes 
+#' @param burstBirthProbabilities 
+#' @param eventSamplingTimes time at which every lineage in the tree may be sampled
+#' @param eventSamplingProbabilities probability of a lineage being sampled at an event sampling time
+#' @param samplingStrategyAtPresent Which strategy was used to obtain the samples (taxa). Options are: uniform|diversified|age
+#' @param samplingProbabilityAtPresent probability of uniform sampling at present
+#' @param MRCA does the tree start at the mrca?
+#' @param CONDITION do we condition the process on nothing|survival|taxa?
+#' @param log likelhood in log-scale?
+#'
+#' @return probability of the speciation times
+#' @export
+#'
+#' @examples
+#' data(conifers)
+#'   
+#' nodes <- tess.branching.times(conifers)
+#' 
+#' lambda <- c(0.2, 0.1, 0.3)
+#' mu <- c(0.1, 0.05, 0.25)
+#' phi <- c(0.1, 0.2, 0.05)
+#' 
+#' changetimes <- c(100, 200)
+#' 
+#' tess.likelihood.ebdstp(nodes,
+#'                        lambda = lambda, 
+#'                        mu = mu,
+#'                        phi = phi,
+#'                        r = 0.0,
+#'                        rateChangeTimesLambda = changetimes,
+#'                        rateChangeTimesMu = changetimes,
+#'                        rateChangeTimesPhi = changetimes,
+#'                        samplingProbability = 1.0
+#' )
 tess.likelihood.ebdstp <- function( nodes,
                                     lambda,
                                     mu,
@@ -419,49 +431,7 @@ tess.likelihood.ebdstp <- function( nodes,
   return (lnl)
 }
 
-precomputeVectors <- function(changeTimes,
-                              lambda,
-                              mu,
-                              phi,
-                              r,
-                              burstBirthProbabilities,
-                              massDeathProbabilities,
-                              eventSamplingProbabilities) {
-  
-  ABCDE <- list()
-  
-  ABCDE$A  <- numeric(length(changeTimes)+1)
-  ABCDE$B  <- numeric(length(changeTimes)+1)
-  ABCDE$C  <- numeric(length(changeTimes)+1)
-  ABCDE$D_minus <- numeric(length(changeTimes)+1)
-  ABCDE$E_minus <- numeric(length(changeTimes)+1)
-  
-  ABCDE$A[1] <- sqrt((lambda[1] - mu[1] - phi[1])^2 + 4 * lambda[1] * phi[1])
-  if ( abs(eventSamplingProbabilities[1] - 1) > .Machine$double.eps ) {
-    ABCDE$C[1] <- 1.0 - eventSamplingProbabilities[1]
-  } else {
-    ABCDE$C[1] <- 1.0
-  }
-  ABCDE$B[1] <- ((1 - 2 * ABCDE$C[1]) * lambda[1] + mu[1] + phi[1]) / ABCDE$A[1]
-  ABCDE$D_minus[1] <- 1.0
-  ABCDE$E_minus[1] <- 1.0
-  
-  if ( length(changeTimes) > 1 ) {
-    for (i in 2:(length(changeTimes) + 1)) {
-      ti <- changeTimes[i-1]
-      
-      ABCDE$A[i] <- sqrt((lambda[i] - mu[i] - phi[i])^2 + 4 * lambda[i] * phi[i])
-      ABCDE$C[i] <- (1 - eventSamplingProbabilities[i]) * (((1 - burstBirthProbabilities[i])*(1 - massDeathProbabilities[i])*ABCDE$E_minus[i]) + ((1 - massDeathProbabilities[i])*ABCDE$E_minus[i]^2) + ((1 - burstBirthProbabilities[i])*massDeathProbabilities[i]))
-      ABCDE$B[i] <- ((1 - 2 * ABCDE$C[i]) * lambda[i] + mu[i] + phi[i]) / ABCDE$A[i]    
-      
-      ABCDE$E_minus[i] <- E(i-1, ti, lambda, mu, phi, r, burstBirthProbabilities, massDeathProbabilities, eventSamplingProbabilities, changeTimes, ABCDE)
-      ABCDE$D_minus[i] <- D(i-1, ti, lambda, mu, phi, r, burstBirthProbabilities, massDeathProbabilities, eventSamplingProbabilities, changeTimes, ABCDE)
-    }
-    
-  }
-  
-  return(ABCDE)
-}
+
 
 E <- function( idx, t, lambda, mu, phi, r, burstBirthProbabilities, massDeathProbabilities, eventSamplingProbabilities, changeTimes, ABCDE ) {
 
@@ -523,5 +493,49 @@ D <- function( idx, t, lambda, mu, phi, r, burstBirthProbabilities, massDeathPro
   
   
   return ( tmp_event * 4.0*e / (tmp_rate*tmp_rate) )
+}
+
+precomputeVectors <- function(changeTimes,
+                              lambda,
+                              mu,
+                              phi,
+                              r,
+                              burstBirthProbabilities,
+                              massDeathProbabilities,
+                              eventSamplingProbabilities) {
+  
+  ABCDE <- list()
+  
+  ABCDE$A  <- numeric(length(changeTimes)+1)
+  ABCDE$B  <- numeric(length(changeTimes)+1)
+  ABCDE$C  <- numeric(length(changeTimes)+1)
+  ABCDE$D_minus <- numeric(length(changeTimes)+1)
+  ABCDE$E_minus <- numeric(length(changeTimes)+1)
+  
+  ABCDE$A[1] <- sqrt((lambda[1] - mu[1] - phi[1])^2 + 4 * lambda[1] * phi[1])
+  if ( abs(eventSamplingProbabilities[1] - 1) > .Machine$double.eps ) {
+    ABCDE$C[1] <- 1.0 - eventSamplingProbabilities[1]
+  } else {
+    ABCDE$C[1] <- 1.0
+  }
+  ABCDE$B[1] <- ((1 - 2 * ABCDE$C[1]) * lambda[1] + mu[1] + phi[1]) / ABCDE$A[1]
+  ABCDE$D_minus[1] <- 1.0
+  ABCDE$E_minus[1] <- 1.0
+  
+  if ( length(changeTimes) > 1 ) {
+    for (i in 2:(length(changeTimes) + 1)) {
+      ti <- changeTimes[i-1]
+      
+      ABCDE$A[i] <- sqrt((lambda[i] - mu[i] - phi[i])^2 + 4 * lambda[i] * phi[i])
+      ABCDE$C[i] <- (1 - eventSamplingProbabilities[i]) * (((1 - burstBirthProbabilities[i])*(1 - massDeathProbabilities[i])*ABCDE$E_minus[i]) + ((1 - massDeathProbabilities[i])*ABCDE$E_minus[i]^2) + ((1 - burstBirthProbabilities[i])*massDeathProbabilities[i]))
+      ABCDE$B[i] <- ((1 - 2 * ABCDE$C[i]) * lambda[i] + mu[i] + phi[i]) / ABCDE$A[i]    
+      
+      ABCDE$E_minus[i] <- E(i-1, ti, lambda, mu, phi, r, burstBirthProbabilities, massDeathProbabilities, eventSamplingProbabilities, changeTimes, ABCDE)
+      ABCDE$D_minus[i] <- D(i-1, ti, lambda, mu, phi, r, burstBirthProbabilities, massDeathProbabilities, eventSamplingProbabilities, changeTimes, ABCDE)
+    }
+    
+  }
+  
+  return(ABCDE)
 }
 

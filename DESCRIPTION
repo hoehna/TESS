@@ -10,5 +10,9 @@ Description: Simulation of reconstructed phylogenetic trees under tree-wide time
 License: GPL-3
 Imports: Rcpp (>= 0.11.0)
 LinkingTo: Rcpp
-Suggests: knitr
+Suggests: 
+    testthat (>= 3.0.0),
+    knitr
 VignetteBuilder: knitr
+RoxygenNote: 7.1.2
+Config/testthat/edition: 3

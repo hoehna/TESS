@@ -36,16 +36,17 @@
 # @version 5.0
 # @since 2018-05-25, version 3.0
 #
-# @param    times                                         vector        vector of branching times
 # @param    times                                         vector        branching times
 # @param    lambda                                        vector        speciation rates
 # @param    mu                                            vector        extinction rates
-# @param    rateChangeTimesLambda                         vector        speciation rates
-# @param    rateChangeTimesMu                             vector        extinction rates
+# @param    phi                                           vector        fossilization rates
+# @param    rateChangeTimesLambda                         vector        speciation times
+# @param    rateChangeTimesMu                             vector        extinction times
+# @param    rateChangeTimesPhi                            vector        fossilization times
 # @param    massExtinctionTimes                           vector        time at which mass-extinctions happen
 # @param    massExtinctionSurvivalProbabilities           vector        survival probability of a mass extinction event
-# @param    samplingProbability                           scalar        probability of uniform sampling at present
 # @param    samplingStrategy                              string        Which strategy was used to obtain the samples (taxa). Options are: uniform|diversified|age
+# @param    samplingProbability                           scalar        probability of uniform sampling at present
 # @param    MRCA                                          boolean       does the tree start at the mrca?
 # @param    CONDITITON                                    string        do we condition the process on nothing|survival|taxa?
 # @param    log                                           boolean       likelhood in log-scale?
@@ -53,7 +54,6 @@
 # @return                                                 scalar        probability of the speciation times
 #
 ################################################################################
-
 tess.likelihood.efbd <- function( nodes,
                                   lambda,
                                   mu,
@@ -85,6 +85,17 @@ tess.likelihood.efbd <- function( nodes,
       stop("Wrong choice of argument for \"samplingStrategy\". Possible option are uniform|diversified.")
    }
 
+   tree_age <- max(nodes$age)
+   rateChangeTimesLambda  <- tree_age - rateChangeTimesLambda
+   rateChangeTimesMu      <- tree_age - rateChangeTimesMu
+   rateChangeTimesPhi     <- tree_age - rateChangeTimesPhi
+   massExtinctionTimes    <- tree_age - massExtinctionTimes
+
+
+#   lambda <- rev(lambda)
+#   mu     <- rev(mu)
+#   phi    <- rev(phi)
+
    # make sure the times and values are sorted
    if ( length(rateChangeTimesLambda) > 0 ) {
       sortedRateChangeTimesLambda <- sort( rateChangeTimesLambda )
@@ -113,6 +124,7 @@ tess.likelihood.efbd <- function( nodes,
    } else {
       changeTimes <- c()
    }
+
    speciation    <- rep(NaN,length(changeTimes)+1)
    extinction    <- rep(NaN,length(changeTimes)+1)
    fossilization <- rep(NaN,length(changeTimes)+1)
@@ -153,13 +165,16 @@ tess.likelihood.efbd <- function( nodes,
    } else {
       rho <- 1.0
    }
-  
+
    rateChangeTimes <- changeTimes
    massExtinctionTimes <- changeTimes
 
-   lambda <- rev(speciation)
-   mu     <- rev(extinction)
-   phi    <- rev(fossilization)
+#   lambda <- rev(speciation)
+#   mu     <- rev(extinction)
+#   phi    <- rev(fossilization)
+   lambda <- speciation
+   mu     <- extinction
+   phi    <- fossilization
    massExtinctionSurvivalProbabilities <- c(rho,rev(mep))
 
 
@@ -179,10 +194,10 @@ tess.likelihood.efbd <- function( nodes,
          return ( phi[idx] )
       }
    } else {
-      speciation.rate     <- function(times) rep(lambda[1],length(times))
-      fossilization.rate  <- function(times) rep(phi[1],length(times))
+      speciation.rate     <- function(t) rep(lambda[1],length(t))
+      fossilization.rate  <- function(t) rep(phi[1],length(t))
    }
-   
+
    # add the serial tip age terms
    if ( sum( nodes$fossil_tip ) > 0 ) {
       t <- nodes$ages[ nodes$fossil_tip ]
@@ -193,32 +208,45 @@ tess.likelihood.efbd <- function( nodes,
    # add the extant tip age term
    lnl <- lnl + sum( nodes$tip ) * log( rho )
 
-    
+
    # add the sampled ancestor age terms
    if ( sum( nodes$sampled_ancestor ) > 0 ) {
       t <- nodes$ages[ nodes$sampled_ancestor ]
       lnl <- lnl + sum (log( fossilization.rate(t) ) )
    }
-   
+
    # add the single lineage propagation terms
    if ( length(rateChangeTimes) >= 1 ) {
       f <- function(t) nodes$age < t & nodes$age_parent > t & is.finite(nodes$age_parent)
       survivors <- Vectorize( f )
       div <- colSums( survivors(rateChangeTimes) )
       survival_prob <- massExtinctionSurvivalProbabilities[-1]
-      lnl <- lnl + sum( div * log(survival_prob) ) 
+
+#cat("t:\t\t",rateChangeTimes,"\n")
+#tmp <- log( D(rateChangeTimes,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) )
+#cat("div:\t\t",div,"\n")
+#cat("D:\t\t",tmp,"\n")
+#cat("sum:\t\t",sum( div * tmp ),"\n")
+
+      lnl <- lnl + sum( div * log(survival_prob) )
       lnl <- lnl + sum( div * log( D(rateChangeTimes,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
    }
-   
+#   cat("lnl =",lnl,"\n")
 
    # add the bifurcation age terms
    t <- nodes$age[ nodes$fossil_tip == FALSE & nodes$tip == FALSE & is.finite(nodes$age_parent) ]
    lnl <- lnl + sum( log( speciation.rate(t) ) + log( D(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
-   
+
+#cat("t:\t\t",t,"\n")
+#cat("lambda(t):\t",speciation.rate(t),"\n")
+
+#   cat("lnl =",lnl,"\n")
 
    # add the initial age term
    num_initial_lineages <- ifelse(MRCA == TRUE,2,1)
    lnl <- lnl + num_initial_lineages * log( D( max(nodes$age),lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes ) )
+
+#   cat("lnl =",lnl,"\n")
 
     # condition on survival
     if ( CONDITION == "survival" )
@@ -265,7 +293,7 @@ tess.likelihood.efbd <- function( nodes,
 E <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
 
    idx <- findInterval(t,rateChangeTimes,left.open=TRUE)+1
-   
+
    # get the parameters
    b   <- lambda[idx]
    d   <- mu[idx]
@@ -274,23 +302,23 @@ E <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
    ti  <- ifelse( idx <= 1, 0.0, rateChangeTimes[idx-1] )
 
    diff <- b - d - f
-   dt   <- t - ti   
-    
+   dt   <- t - ti
+
    A <- sqrt( diff*diff + 4.0*b*f)
    B <- ( (1.0 - 2.0*((1-r)+r*ifelse(ti==0.0,0,E(ti, lambda, mu, phi, rho, rateChangeTimes))) )*b + d + f ) / A
 
    e <- exp(-A*dt)
    tmp <- b + d + f - A * ((1.0+B)-e*(1.0-B))/((1.0+B)+e*(1.0-B))
-   
+
    return ( tmp / (2.0*b) )
 }
 
 
 
 D <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
-    
+
    idx <- findInterval(t,rateChangeTimes,left.open=TRUE)+1
-   
+
    # get the parameters
    b   <- lambda[idx]
    d   <- mu[idx]
@@ -298,19 +326,16 @@ D <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
    r   <- rho[idx]
    tmp_ti <- c(0.0,rateChangeTimes)
    ti  <- tmp_ti[idx]
-   
+
    diff <- b - d - f
    bp   <- b*f
-   dt   <- ti - t   
-   
+   dt   <- ti - t
+
    A <- sqrt( diff*diff + 4.0*b*f)
    B <- ( (1.0 - 2.0*((1-r)+r*ifelse(ti==0.0,0,E(ti, lambda, mu, phi, rho, rateChangeTimes))) )*b + d + f ) / A
-  
+
    e   <- exp(A*dt)
    tmp <- (1.0+B) + e*(1.0-B)
-     
+
    return ( 4.0*e / (tmp*tmp) )
 }
-
-
-

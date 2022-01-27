@@ -27,30 +27,34 @@
 
 
 
-################################################################################
-#
-# @brief Computation of the likelihood for a given tree under an episodic fossilized-birth-death model (i.e. piecewise constant rates).
-#
-# @date Last modified: 2018-05-25
-# @author Sebastian Hoehna
-# @version 5.0
-# @since 2018-05-25, version 3.0
-#
-# @param    nodes                                         list          all node times in the tree (from tess.branching.times)
-# @param    lambda                                        scalar        speciation (birth) rate
-# @param    mu                                            scalar        extinction (death) rate
-# @param    phi                                           scalar        serial sampling rate
-# @param    r                                             scalar        conditional probability that a lineage dies upon (serial) sampling
-# @param    samplingProbability                           scalar        probability of uniform sampling at present
-# @param    samplingStrategy                              string        Which strategy was used to obtain the samples (taxa). Options are: uniform|diversified|age
-# @param    MRCA                                          boolean       does the tree start at the mrca?
-# @param    CONDITITON                                    string        do we condition the process on nothing|survival|sampleAtLeastOneLineage?
-# @param    log                                           boolean       likelhood in log-scale?
-
-# @return                                                 scalar        probability of the speciation times
-#
-################################################################################
-
+#' tess.likelihood.bdstp
+#' 
+#' @description Computation of the likelihood for a given tree under an episodic fossilized-birth-death model (i.e. piecewise constant rates).
+#'
+#' @param nodes node information from \code{tess.branching.times(phy)}
+#' @param lambda speciation rate vector
+#' @param mu extinction rate vector
+#' @param phi serial sampling rate vector
+#' @param r conditional probability that a lineage dies upon (serial) sampling 
+#' @param samplingProbability probability of uniform sampling at present
+#' @param samplingStrategy Which strategy was used to obtain the samples (taxa). Options are: uniform|diversified|age
+#' @param MRCA does the tree start at the mrca?
+#' @param CONDITION do we condition the process on nothing|survival|sampleAtLeastOneLineage?
+#' @param log likelhood in log-scale?
+#'
+#' @return log likelihood
+#' @export
+#'
+#' @examples
+#' data(conifers)
+#' nodes <- tess.branching.times(conifers)
+#' 
+#' logL <- tess.likelihood.bdstp(nodes,
+#'                               lambda = 1.0, 
+#'                               mu = 0.5,
+#'                               phi = 0.1,
+#'                               r = 0.0,
+#'                               samplingProbability = 1.0)
 tess.likelihood.bdstp <- function( nodes,
                                    lambda,
                                    mu,
