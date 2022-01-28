@@ -43,36 +43,36 @@
 #'
 #' @examples
 #' data(conifers)
-#' 
+#'
 #' nodes <- tess.branching.times(conifers)
 tess.branching.times <- function(phy, tip.age.threshold=1e-5) {
 
-  # Do it recursively  
+  # Do it recursively
   fx <- function(phy, node, cur_time, nodes) {
-    
+
     children <- phy$edge[,2][phy$edge[,1] == node]
-  
+
     for (i in 1:length(children)) {
       child <- children[i]
       child_edge <- which(phy$edge[,2] == child)
       branch_time <- cur_time + phy$edge.length[child_edge]
-  
+
       nodes$age[child]              <- branch_time
       nodes$age_parent[child]       <- nodes$age[node]
       nodes$sampled_ancestor[child] <- ( length(phy$edge[,2][phy$edge[,1] == child]) == 1 )
       nodes$tip[child]              <- ( length(phy$edge[,2][phy$edge[,1] == child]) == 0 )
 
       if (child > length(phy$tip.label)) {
-        nodes <- fx(phy, node = child, cur_time = branch_time, nodes)  
+        nodes <- fx(phy, node = child, cur_time = branch_time, nodes)
       }
-  
+
     }
-    
+
     return (nodes)
   }
-  
+
   nodes <- list(sampled_ancestor=c(),fossil_tip=c(),age_parent=c(),age=c(),tip=c())
-  
+
   # do the recursive call starting with the root
   nodes$age[length(phy$tip.label) + 1]              <- 0.0
   nodes$age_parent[length(phy$tip.label) + 1]       <- Inf
@@ -84,15 +84,15 @@ tess.branching.times <- function(phy, tip.age.threshold=1e-5) {
   max_bt <- max(nodes$age)
   nodes$age        <- max_bt - nodes$age
   nodes$age_parent <- max_bt - nodes$age_parent
-  
+
   nodes$age_parent[length(phy$tip.label) + 1]       <- Inf
-  
+
   nodes$age[ nodes$age < tip.age.threshold ] <- 0.0
   nodes$fossil_tip <- nodes$age > tip.age.threshold & nodes$tip
   nodes$tip <- nodes$fossil_tip == FALSE & nodes$tip
-  
+
   return( nodes )
-  
+
 }
 
 
@@ -105,11 +105,13 @@ tess.branching.times <- function(phy, tip.age.threshold=1e-5) {
 ################################################################################
 
 tess.num.active.lineages <- function(nodes,t) {
-  if (t > max(nodes$age)) {
+
+  epsilon <- ifelse( t==0, 1E-3, 1E-5 )
+  if ((t-epsilon) > max(nodes$age)) {
     return(0)
   } else {
-    n_born_before <- sum(nodes$age[!(nodes$tip | nodes$fossil_tip | nodes$sampled_ancestor)] > t)
-    n_died_before <- sum(nodes$age[nodes$fossil_tip] > t)
+    n_born_before <- sum(nodes$age[!(nodes$tip | nodes$fossil_tip | nodes$sampled_ancestor)] > (t-epsilon))
+    n_died_before <- sum(nodes$age[nodes$fossil_tip] > (t+epsilon))
     return(1 + n_born_before - n_died_before)
   }
 }
@@ -124,12 +126,12 @@ tess.num.active.lineages <- function(nodes,t) {
 ################################################################################
 
 tess.topology.probability <- function(nodes, log=TRUE) {
-  lnl <- (sum(nodes$tip) + sum(nodes$fossil_tip) - 1) * log(2) - 
+  lnl <- (sum(nodes$tip) + sum(nodes$fossil_tip) - 1) * log(2) -
     lfactorial(sum(nodes$sampled_ancestor) + sum(nodes$tip) + sum(nodes$fossil_tip))
-  
+
   if ( log == FALSE ) {
     lnl <- exp(lnl)
   }
-  
+
   return(lnl)
 }

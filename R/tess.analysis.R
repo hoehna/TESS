@@ -128,7 +128,7 @@ tess.analysis <- function( tree,
   }
 
   MAX_TRIES <- 1000
-  
+
   if ( class(tree) == "phylo" ) {
     use_tree_sample = FALSE
     times <- branching.times(tree)
@@ -164,11 +164,11 @@ tess.analysis <- function( tree,
 #       d <- params[2]
       b <- params[1]/(1-params[2])
       d <- params[2]*b
-      
+
       if ( use_tree_sample == TRUE ) {
          ln_probs <- c()
          max_prob <- -Inf
-         
+
          for (i in 1:NUM_SAMPLED_TREES) {
             ln_probs[i] <- tess.likelihood(times[[i]], b, d, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
             if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
@@ -206,7 +206,14 @@ tess.analysis <- function( tree,
         stop("Could not find valid starting values after ",tries," attemps.\n")
     }
 
-    samples <- tess.mcmc( empirical.prior.likelihood,priors,starting.values,logTransforms=c(TRUE,TRUE),delta=c(0.1,0.1),iterations=20000,burnin=2000,verbose=verbose)
+    samples <- tess.mcmc( empirical.prior.likelihood,
+                          priors,
+                          starting.values,
+                          logTransforms=c(TRUE,TRUE),
+                          delta=c(0.1,0.1),
+                          iterations=20000,
+                          burnin=2000,
+                          verbose=verbose)
 
     samples.lambda <- samples[,1]/(1-samples[,2])
     m.lambda <- mean(samples.lambda)
@@ -307,11 +314,11 @@ tess.analysis <- function( tree,
         if( any( lambda < 0 ) | any( mu < 0 ) ) {
            lnl <- -Inf
         } else {
-            
+
            if ( use_tree_sample == TRUE ) {
               ln_probs <- c()
               max_prob <- -Inf
-         
+
               for (i in 1:NUM_SAMPLED_TREES) {
                  ln_probs[i] <- tess.likelihood.rateshift(times[[i]], lambda, mu, rateChangeTimesLambda = lambdaTimes, rateChangeTimesMu = muTimes, massExtinctionTimes= tMassExtinction, massExtinctionSurvivalProbabilities = pSurvival, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log = TRUE)
                  if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
@@ -1187,15 +1194,3 @@ tess.analysis <- function( tree,
 
 
 globalBiDe.analysis <- tess.analysis
-
-
-
-
-
-
-
-
-
-
-
-
