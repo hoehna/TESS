@@ -201,7 +201,7 @@ tess.likelihood.efbd <- function( nodes,
    # add the serial tip age terms
    if ( sum( nodes$fossil_tip ) > 0 ) {
       t <- nodes$ages[ nodes$fossil_tip ]
-      lnl <- lnl + sum( log( fossilization.rate(t) ) + log( E(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
+      lnl <- lnl + sum( log( fossilization.rate(t) ) + log( E.EFBDP(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
    }
 
 
@@ -223,19 +223,19 @@ tess.likelihood.efbd <- function( nodes,
       survival_prob <- massExtinctionSurvivalProbabilities[-1]
 
 #cat("t:\t\t",rateChangeTimes,"\n")
-#tmp <- log( D(rateChangeTimes,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) )
+#tmp <- log( D.EFBDP(rateChangeTimes,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) )
 #cat("div:\t\t",div,"\n")
 #cat("D:\t\t",tmp,"\n")
 #cat("sum:\t\t",sum( div * tmp ),"\n")
 
       lnl <- lnl + sum( div * log(survival_prob) )
-      lnl <- lnl + sum( div * log( D(rateChangeTimes,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
+      lnl <- lnl + sum( div * log( D.EFBDP(rateChangeTimes,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
    }
 #   cat("lnl =",lnl,"\n")
 
    # add the bifurcation age terms
    t <- nodes$age[ nodes$fossil_tip == FALSE & nodes$tip == FALSE & is.finite(nodes$age_parent) ]
-   lnl <- lnl + sum( log( speciation.rate(t) ) + log( D(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
+   lnl <- lnl + sum( log( speciation.rate(t) ) + log( D.EFBDP(t,lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes) ) )
 
 #cat("t:\t\t",t,"\n")
 #cat("lambda(t):\t",speciation.rate(t),"\n")
@@ -244,14 +244,14 @@ tess.likelihood.efbd <- function( nodes,
 
    # add the initial age term
    num_initial_lineages <- ifelse(MRCA == TRUE,2,1)
-   lnl <- lnl + num_initial_lineages * log( D( max(nodes$age),lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes ) )
+   lnl <- lnl + num_initial_lineages * log( D.EFBDP( max(nodes$age),lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes ) )
 
 #   cat("lnl =",lnl,"\n")
 
     # condition on survival
     if ( CONDITION == "survival" )
     {
-       lnl <- lnl - num_initial_lineages * log( 1.0 - E( max(nodes$age),lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes ) )
+       lnl <- lnl - num_initial_lineages * log( 1.0 - E.EFBDP( max(nodes$age),lambda,mu,phi,massExtinctionSurvivalProbabilities,rateChangeTimes ) )
     }
 #    // condition on nTaxa
 #    else if ( condition == "nTaxa" )
@@ -290,7 +290,7 @@ tess.likelihood.efbd <- function( nodes,
 }
 
 
-E <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
+E.EFBDP <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
 
    idx <- findInterval(t,rateChangeTimes,left.open=TRUE)+1
 
@@ -305,7 +305,7 @@ E <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
    dt   <- t - ti
 
    A <- sqrt( diff*diff + 4.0*b*f)
-   B <- ( (1.0 - 2.0*((1-r)+r*ifelse(ti==0.0,0,E(ti, lambda, mu, phi, rho, rateChangeTimes))) )*b + d + f ) / A
+   B <- ( (1.0 - 2.0*((1-r)+r*ifelse(ti==0.0,0,E.EFBDP(ti, lambda, mu, phi, rho, rateChangeTimes))) )*b + d + f ) / A
 
    e <- exp(-A*dt)
    tmp <- b + d + f - A * ((1.0+B)-e*(1.0-B))/((1.0+B)+e*(1.0-B))
@@ -315,7 +315,7 @@ E <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
 
 
 
-D <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
+D.EFBDP <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
 
    idx <- findInterval(t,rateChangeTimes,left.open=TRUE)+1
 
@@ -332,7 +332,7 @@ D <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
    dt   <- ti - t
 
    A <- sqrt( diff*diff + 4.0*b*f)
-   B <- ( (1.0 - 2.0*((1-r)+r*ifelse(ti==0.0,0,E(ti, lambda, mu, phi, rho, rateChangeTimes))) )*b + d + f ) / A
+   B <- ( (1.0 - 2.0*((1-r)+r*ifelse(ti==0.0,0,E.EFBDP(ti, lambda, mu, phi, rho, rateChangeTimes))) )*b + d + f ) / A
 
    e   <- exp(A*dt)
    tmp <- (1.0+B) + e*(1.0-B)
