@@ -28,13 +28,15 @@ tess.mcmc <- function(likelihoodFunction,priors,parameters,logTransforms,delta,i
   OPTIMIZATIONS <- max(ceiling(burnin/20),50)
 
   # create a list for the samples
-  chain = array(dim = c(floor(iterations/thinning)+1,length(parameters))) #reserve memory for the chain, for large chains we might consider writing to a file instead of storing in memory
+  chain = array(dim = c(floor(iterations/thinning)+1,length(parameters)+2)) #reserve memory for the chain, for large chains we might consider writing to a file instead of storing in memory
 
   # pre-compute current posterior probability
-  pp <- likelihoodFunction(parameters)
+  lnl <- likelihoodFunction(parameters)
+  ln_prior <- 0
   for ( j in 1:length(parameters) ) {
-    pp <- pp + priors[[j]](parameters[j])
+    ln_prior <- ln_prior + priors[[j]](parameters[j])
   }
+  pp <- lnl + ln_prior
 
   if ( verbose ) {
     cat("Burning-in the chain ...\n")
@@ -46,10 +48,10 @@ tess.mcmc <- function(likelihoodFunction,priors,parameters,logTransforms,delta,i
 #  delta <- rep(1,length(parameters))
   accepted <- rep(0,length(parameters))
   tried <- rep(0,length(parameters))
-  
+
   # We need an initial sample if the burnin == 0
   if (burnin == 0) {
-     chain[1,] <- parameters    
+     chain[1,] <- c(lnl, ln_prior, parameters)
   }
 
   for (i in 1:(burnin+iterations)) {
@@ -99,16 +101,19 @@ tess.mcmc <- function(likelihoodFunction,priors,parameters,logTransforms,delta,i
         new_val       <- exp(new_eta)
         hr            <- log(new_val / parameters[j]) # calculate the Hastings ratio
         parameters[j] <- new_val
-        new_pp        <- 0.0
+        new_prior     <- 0.0
         for ( k in 1:length(parameters) ) {
-          new_pp <- new_pp + priors[[k]](parameters[k])
+          new_prior <- new_prior + priors[[k]](parameters[k])
         }
-        if ( is.finite(new_pp) ) {
-          new_pp        <- new_pp + likelihoodFunction(parameters)
+        if ( is.finite(new_prior) ) {
+          new_lnl       <- likelihoodFunction(parameters)
+          new_pp        <- new_lnl + new_prior
         }
         # accept / reject
         if ( is.finite(new_pp) && is.finite(hr) &&  new_pp-pp+hr > log(runif(1,0,1)) ) {
-          pp <- new_pp
+          pp          <- new_pp
+          lnl         <- new_lnl
+          ln_prior    <- new_prior
           accepted[j] <- accepted[j] + 1
         } else {
           parameters[j] <- exp(eta)
@@ -118,16 +123,19 @@ tess.mcmc <- function(likelihoodFunction,priors,parameters,logTransforms,delta,i
         new_val       <- eta + rnorm(1,0,delta[j])
         hr            <- 0.0 # calculate the Hastings ratio
         parameters[j] <- new_val
-        new_pp        <- 0.0
+        new_prior     <- 0.0
         for ( k in 1:length(parameters) ) {
-          new_pp <- new_pp + priors[[k]](parameters[k])
+          new_prior <- new_prior + priors[[k]](parameters[k])
         }
-        if ( is.finite(new_pp) ) {
-          new_pp        <- new_pp + likelihoodFunction(parameters)
+        if ( is.finite(new_prior) ) {
+          new_lnl       <- likelihoodFunction(parameters)
+          new_pp        <- new_lnl + new_prior
         }
         # accept / reject
         if ( is.finite(new_pp) && is.finite(hr) &&  new_pp-pp+hr > log(runif(1,0,1)) ) {
-          pp <- new_pp
+          pp          <- new_pp
+          lnl         <- new_lnl
+          ln_prior    <- new_prior
           accepted[j] <- accepted[j] + 1
         } else {
           parameters[j] <- eta
@@ -140,7 +148,7 @@ tess.mcmc <- function(likelihoodFunction,priors,parameters,logTransforms,delta,i
     # sample the parameter
     if (i >= burnin) {
       if ( (i-burnin) %% thinning == 0 ) {
-        chain[(i-burnin)/thinning+1,] <- parameters
+        chain[(i-burnin)/thinning+1,] <- c(lnl, ln_prior, parameters)
       }
     }
 
@@ -151,7 +159,7 @@ tess.mcmc <- function(likelihoodFunction,priors,parameters,logTransforms,delta,i
   }
 
   chain <- as.mcmc(chain)
-  varnames(chain) <- names(priors)
+  varnames(chain) <- c("likelihood","prior",names(priors))
 
   if ( verbose ) {
     cat("\nFinished MCMC!\n\n")
@@ -165,9 +173,3 @@ tess.mcmc <- function(likelihoodFunction,priors,parameters,logTransforms,delta,i
   return(chain) #return a mcmc object, used by coda to plot
 
 }
-
-
-
-
-
-

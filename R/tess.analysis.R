@@ -158,19 +158,26 @@ tess.analysis <- function( tree,
     }
 
     empirical.prior.likelihood <- function(params) {
-      # We use the parameters as diversification rate and turnover rate.
-      # Thus we need to transform first
-#       b <- params[1] + params[2]
-#       d <- params[2]
-      b <- params[1]/(1-params[2])
-      d <- params[2]*b
+
+      b <- params[1]
+      d <- params[2]
 
       if ( use_tree_sample == TRUE ) {
          ln_probs <- c()
          max_prob <- -Inf
 
          for (i in 1:NUM_SAMPLED_TREES) {
-            ln_probs[i] <- tess.likelihood(times[[i]], b, d, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
+            ln_probs[i] <- tess.likelihood(times[[i]],
+                                  b,
+                                  d,
+                                  missingSpecies = missingSpecies,
+                                  timesMissingSpecies = timesMissingSpecies,
+                                  samplingStrategy = samplingStrategy,
+                                  samplingProbability = samplingProbability,
+                                  MRCA = MRCA,
+                                  CONDITION = CONDITION,
+                                  log=TRUE)
+
             if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
          }
          sum <- 0.0
@@ -179,18 +186,27 @@ tess.analysis <- function( tree,
          }
          lnl <- log( sum ) + max_prob
       } else {
-         lnl <- tess.likelihood(times, b, d, missingSpecies = missingSpecies, timesMissingSpecies = timesMissingSpecies, samplingStrategy = samplingStrategy, samplingProbability= samplingProbability, MRCA = MRCA,CONDITION = CONDITION,log=TRUE)
+         lnl <- tess.likelihood(times,
+                       b,
+                       d,
+                       missingSpecies = missingSpecies,
+                       timesMissingSpecies = timesMissingSpecies,
+                       samplingStrategy = samplingStrategy,
+                       samplingProbability = samplingProbability,
+                       MRCA = MRCA,
+                       CONDITION = CONDITION,
+                       log=TRUE)
       }
       return(lnl)
     }
 
     if ( use_tree_sample == TRUE ) {
-       prior.diversification <- function(x) { dexp(x,rate=max(times[[1]])/log(length(times[[1]])),log=TRUE) }
+       prior.speciation <- function(x) { dexp(x,rate=max(times[[1]])/log(length(times[[1]])),log=TRUE) }
     } else {
-       prior.diversification <- function(x) { dexp(x,rate=max(times)/log(length(times)),log=TRUE) }
+       prior.speciation <- function(x) { dexp(x,rate=max(times)/log(length(times)),log=TRUE) }
     }
-    prior.turnover <- function(x) { dbeta(x,shape1=1.5,shape2=3,log=TRUE) }
-    priors <- c("diversification"=prior.diversification,"turnover"=prior.turnover)
+    prior.extinction <- function(x) { dexp(x,rate=0.1,log=TRUE) }
+    priors <- c("speciation"=prior.speciation,"extinction"=prior.extinction)
 
     tries <- 1
     repeat {
@@ -215,11 +231,11 @@ tess.analysis <- function( tree,
                           burnin=2000,
                           verbose=verbose)
 
-    samples.lambda <- samples[,1]/(1-samples[,2])
+    samples.lambda <- samples[,"speciation"]
     m.lambda <- mean(samples.lambda)
     v.lambda <- empiricalHyperPriorInflation * var(samples.lambda)
 
-    samples.mu <- samples.lambda*samples[,2]
+    samples.mu <- samples[,"extinction"]
     m.mu <- mean(samples.mu)
     v.mu <- empiricalHyperPriorInflation * var(samples.mu)
 
@@ -227,8 +243,8 @@ tess.analysis <- function( tree,
     mu.hyperprior.fits <- c("lognormal"=Inf,"normal"=Inf,"gamma"=Inf)
 
     if ( "lognormal" %in% empiricalHyperPriorForm ) {
-      lambda.hyperprior.fits["lognormal"] <- suppressWarnings(ks.test(samples.lambda,'plnorm',meanlog=log((m.lambda^2)/sqrt(v.lambda+m.lambda^2)),sdlog=sqrt( log(1+v.lambda/(m.lambda^2)))))$statistic
-      mu.hyperprior.fits["lognormal"] <- suppressWarnings(ks.test(samples.mu,'plnorm',meanlog=log((m.mu^2)/sqrt(v.mu+m.mu^2)),sdlog=sqrt( log(1+v.mu/(m.mu^2)))))$statistic
+      lambda.hyperprior.fits["lognormal"] <- suppressWarnings(ks.test(samples.lambda,'plnorm',meanlog=log(m.lambda),sdlog=sqrt(v.lambda)))$statistic
+      mu.hyperprior.fits["lognormal"] <- suppressWarnings(ks.test(samples.mu,'plnorm',meanlog=log(m.mu),sdlog=sqrt(v.mu)))$statistic
     }
 
     if ( "normal" %in% empiricalHyperPriorForm ) {
@@ -269,8 +285,8 @@ tess.analysis <- function( tree,
     initialSpeciationRate <- m.lambda
     initialExtinctionRate <- m.mu
 
-    empirical.hyperprior.samples <- data.frame(1:nrow(samples),samples.lambda,samples.mu)
-    write.table(empirical.hyperprior.samples[-1,],file='samplesHyperprior.txt',row.names=FALSE,col.names=c('Iteration','speciation','extinction'),sep='\t')
+    empirical.hyperprior.samples <- data.frame(1:nrow(samples),samples[,"likelihood"],samples[,"prior"],samples.lambda,samples.mu)
+    write.table(empirical.hyperprior.samples[-1,],file='samplesHyperprior.txt',row.names=FALSE,col.names=c('Iteration','Likelihood','Prior','speciation','extinction'),sep='\t')
 
     summary.file <- "empiricalHyperpriorSummary.txt"
     cat("Summary of the empirical hyperprior analysis",file=summary.file)

@@ -135,6 +135,8 @@ tess.analysis.efbd <- function( tree,
                            priorOnly = FALSE,
                            verbose = TRUE) {
 
+USE_EBDSTP = FALSE
+
   orgDir <- getwd()
   if ( dir != "" ) {
     if (file.exists(dir)){
@@ -191,34 +193,10 @@ tess.analysis.efbd <- function( tree,
          max_prob <- -Inf
 
          for (i in 1:NUM_SAMPLED_TREES) {
-#            ln_probs[i] <- tess.likelihood.efbd(nodes=times[[i]],
-#                                                lambda=b,
-#                                                mu=d,
-#                                                phi=f,
-#                                                samplingStrategy = samplingStrategy,
-#                                                samplingProbability = samplingProbability,
-#                                                MRCA = MRCA,
-#                                                CONDITION = CONDITION,
-#                                                log=TRUE)
-            ln_probs[i] <- tess.likelihood.ebdstp(nodes=times[[i]],
-                                                  lambda=b,
-                                                  mu=d,
-                                                  phi=f,
-                                                  r=0.0,
-                                                  samplingStrategy = samplingStrategy,
-                                                  samplingProbability = samplingProbability,
-                                                  MRCA = MRCA,
-                                                  CONDITION = CONDITION,
-                                                  log=TRUE)
-            if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
-         }
-         sum <- 0.0
-         for (i in 1:NUM_SAMPLED_TREES) {
-            sum <- sum + exp( ln_probs[i] - max_prob ) / NUM_SAMPLED_TREES
-         }
-         lnl <- log( sum ) + max_prob
-      } else {
-         lnl <- tess.likelihood.efbd(nodes=times,
+
+            if ( USE_EBDSTP == FALSE ) {
+
+               ln_probs[i] <- tess.likelihood.efbd(nodes=times[[i]],
                                      lambda=b,
                                      mu=d,
                                      phi=f,
@@ -227,16 +205,56 @@ tess.analysis.efbd <- function( tree,
                                      MRCA = MRCA,
                                      CONDITION = CONDITION,
                                      log=TRUE)
-#         lnl <- tess.likelihood.ebdstp(nodes=times,
-#                                       lambda=b,
-#                                       mu=d,
-#                                       phi=f,
-#                                       r=0.0,
-#                                       samplingStrategy = samplingStrategy,
-#                                       samplingProbability = samplingProbability,
-#                                       MRCA = MRCA,
-#                                       CONDITION = CONDITION,
-#                                       log=TRUE)
+
+            } else {
+
+               ln_probs[i] <- tess.likelihood.ebdstp(nodes=times[[i]],
+                                     lambda=b,
+                                     mu=d,
+                                     phi=f,
+                                     r=0.0,
+                                     samplingStrategy = samplingStrategy,
+                                     samplingProbability = samplingProbability,
+                                     MRCA = MRCA,
+                                     CONDITION = CONDITION,
+                                     log=TRUE)
+
+            }
+
+            if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
+         }
+         sum <- 0.0
+         for (i in 1:NUM_SAMPLED_TREES) {
+            sum <- sum + exp( ln_probs[i] - max_prob ) / NUM_SAMPLED_TREES
+         }
+         lnl <- log( sum ) + max_prob
+
+      } else {
+
+         if ( USE_EBDSTP == FALSE ) {
+
+            lnl <- tess.likelihood.efbd(nodes=times,
+                          lambda=b,
+                          mu=d,
+                          phi=f,
+                          samplingStrategy = samplingStrategy,
+                          samplingProbability = samplingProbability,
+                          MRCA = MRCA,
+                          CONDITION = CONDITION,
+                          log=TRUE)
+
+         } else {
+            lnl <- tess.likelihood.ebdstp(nodes=times,
+                          lambda=b,
+                          mu=d,
+                          phi=f,
+                          r=0.0,
+                          samplingStrategy = samplingStrategy,
+                          samplingProbability = samplingProbability,
+                          MRCA = MRCA,
+                          CONDITION = CONDITION,
+                          log=TRUE)
+         }
       }
       return(lnl)
     }
@@ -255,7 +273,6 @@ tess.analysis.efbd <- function( tree,
     repeat {
         starting.values <- runif(3,0,1)
         starting.lnl <- empirical.prior.likelihood(starting.values)
-        cat("starting.lnl =",starting.lnl,"\n")
         if ( is.finite(starting.lnl) || tries >= MAX_TRIES ) {
             break
         }
@@ -275,15 +292,15 @@ tess.analysis.efbd <- function( tree,
                           burnin=2000,
                           verbose=verbose)
 
-    samples.lambda <- samples[,1]/(1-samples[,2])
+    samples.lambda <- samples[,"speciation"]
     m.lambda <- mean(samples.lambda)
     v.lambda <- empiricalHyperPriorInflation * var(samples.lambda)
 
-    samples.mu <- samples.lambda*samples[,2]
+    samples.mu <- samples[,"extinction"]
     m.mu <- mean(samples.mu)
     v.mu <- empiricalHyperPriorInflation * var(samples.mu)
 
-    samples.phi <- samples[,3]
+    samples.phi <- samples[,"fossilization"]
     m.phi <- mean(samples.phi)
     v.phi <- empiricalHyperPriorInflation * var(samples.phi)
 
@@ -350,8 +367,8 @@ tess.analysis.efbd <- function( tree,
     initialExtinctionRate <- m.mu
     initialFossilizationRate <- m.phi
 
-    empirical.hyperprior.samples <- data.frame(1:nrow(samples),samples.lambda,samples.mu,samples.phi)
-    write.table(empirical.hyperprior.samples[-1,],file='samplesHyperprior.txt',row.names=FALSE,col.names=c('Iteration','speciation','extinction','fossilization'),sep='\t')
+    empirical.hyperprior.samples <- data.frame(1:nrow(samples),samples[,"likelihood"],samples[,"prior"],samples.lambda,samples.mu,samples.phi)
+    write.table(empirical.hyperprior.samples[-1,],file='samplesHyperprior.txt',row.names=FALSE,col.names=c('Iteration','Likelihood','Prior','speciation','extinction','fossilization'),sep='\t')
 
     summary.file <- "empiricalHyperpriorSummary.txt"
     cat("Summary of the empirical hyperprior analysis",file=summary.file)
@@ -414,45 +431,9 @@ tess.analysis.efbd <- function( tree,
               max_prob <- -Inf
 
               for (i in 1:NUM_SAMPLED_TREES) {
-#                 ln_probs[i] <- tess.likelihood.efbd(node = times[[i]],
-#                                                     lambda = lambda,
-#                                                     mu = mu,
-#                                                     phi = phi,
-#                                                     rateChangeTimesLambda = lambdaTimes,
-#                                                     rateChangeTimesMu = muTimes,
-#                                                     rateChangeTimesPhi = phiTimes,
-#                                                     massExtinctionTimes= tMassExtinction,
-#                                                     massExtinctionSurvivalProbabilities = pSurvival,
-#                                                     samplingStrategy = samplingStrategy,
-#                                                     samplingProbability = samplingProbability,
-#                                                     MRCA = MRCA,
-#                                                     CONDITION = CONDITION,
-#                                                     log = TRUE)
 
-                 ln_probs[i] <- tess.likelihood.ebdstp(node = times[[i]],
-                                                       lambda = lambda,
-                                                       mu = mu,
-                                                       phi = phi,
-                                                       r = 0,
-                                                       rateChangeTimesLambda = lambdaTimes,
-                                                       rateChangeTimesMu = muTimes,
-                                                       rateChangeTimesPhi = phiTimes,
-                                                       massDeathTimes= tMassExtinction,
-                                                       massDeathProbabilities = 1.0 - pSurvival,
-                                                       samplingStrategy = samplingStrategy,
-                                                       samplingProbability = samplingProbability,
-                                                       MRCA = MRCA,
-                                                       CONDITION = CONDITION,
-                                                       log = TRUE)
-                 if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
-              }
-              sum <- 0.0
-              for (i in 1:NUM_SAMPLED_TREES) {
-                 sum <- sum + exp( ln_probs[i] - max_prob ) / NUM_SAMPLED_TREES
-              }
-              lnl <- log( sum ) + max_prob
-           } else {
-              lnl <- tess.likelihood.efbd(node = times,
+                 if ( USE_EBDSTP == FALSE ) {
+                    ln_probs[i] <- tess.likelihood.efbd(node = times[[i]],
                                           lambda = lambda,
                                           mu = mu,
                                           phi = phi,
@@ -467,34 +448,70 @@ tess.analysis.efbd <- function( tree,
                                           CONDITION = CONDITION,
                                           log = TRUE)
 
+                 } else {
 
-               lnl <- tess.likelihood.efbd(nodes=times,
-                                           lambda=lambda,
-                                           mu=mu[1],
-                                           phi=phi[1],
-                                           rateChangeTimesLambda = lambdaTimes,
-#                                           rateChangeTimesMu = muTimes,
-                                           samplingStrategy = samplingStrategy,
-                                           samplingProbability = samplingProbability,
-                                           MRCA = MRCA,
-                                           CONDITION = CONDITION,
-                                           log=TRUE)
+                    ln_probs[i] <- tess.likelihood.ebdstp(node = times[[i]],
+                                          lambda = lambda,
+                                          mu = mu,
+                                          phi = phi,
+                                          r = 0,
+                                          rateChangeTimesLambda = lambdaTimes,
+                                          rateChangeTimesMu = muTimes,
+                                          rateChangeTimesPhi = phiTimes,
+                                          massDeathTimes= tMassExtinction,
+                                          massDeathProbabilities = 1.0 - pSurvival,
+                                          samplingStrategy = samplingStrategy,
+                                          samplingProbability = samplingProbability,
+                                          MRCA = MRCA,
+                                          CONDITION = CONDITION,
+                                          log = TRUE)
 
-#              lnl <- tess.likelihood.ebdstp(node = times,
-#                                            lambda = lambda,
-#                                            mu = mu,
-#                                            phi = phi,
-#                                            r = 0,
-#                                            rateChangeTimesLambda = lambdaTimes,
-#                                            rateChangeTimesMu = muTimes,
-#                                            rateChangeTimesPhi = phiTimes,
-#                                            massDeathTimes= tMassExtinction,
-#                                            massDeathProbabilities = 1.0 - pSurvival,
-#                                            samplingStrategy = samplingStrategy,
-#                                            samplingProbability = samplingProbability,
-#                                            MRCA = MRCA,
-#                                            CONDITION = CONDITION,
-#                                            log = TRUE)
+                 }
+                 if ( max_prob < ln_probs[i] ) max_prob <- ln_probs[i]
+              }
+              sum <- 0.0
+              for (i in 1:NUM_SAMPLED_TREES) {
+                 sum <- sum + exp( ln_probs[i] - max_prob ) / NUM_SAMPLED_TREES
+              }
+              lnl <- log( sum ) + max_prob
+           } else {
+
+              if ( USE_EBDSTP == FALSE ) {
+
+                 lnl <- tess.likelihood.efbd(node = times,
+                               lambda = lambda,
+                               mu = mu,
+                               phi = phi,
+                               rateChangeTimesLambda = lambdaTimes,
+                               rateChangeTimesMu = muTimes,
+                               rateChangeTimesPhi = phiTimes,
+                               massExtinctionTimes= tMassExtinction,
+                               massExtinctionSurvivalProbabilities = pSurvival,
+                               samplingStrategy = samplingStrategy,
+                               samplingProbability = samplingProbability,
+                               MRCA = MRCA,
+                               CONDITION = CONDITION,
+                               log = TRUE)
+
+              } else {
+
+                 lnl <- tess.likelihood.ebdstp(node = times,
+                               lambda = lambda,
+                               mu = mu,
+                               phi = phi,
+                               r = 0,
+                               rateChangeTimesLambda = lambdaTimes,
+                               rateChangeTimesMu = muTimes,
+                               rateChangeTimesPhi = phiTimes,
+                               massDeathTimes= tMassExtinction,
+                               massDeathProbabilities = 1.0 - pSurvival,
+                               samplingStrategy = samplingStrategy,
+                               samplingProbability = samplingProbability,
+                               MRCA = MRCA,
+                               CONDITION = CONDITION,
+                               log = TRUE)
+
+             }
           }
        }
     } else {
@@ -525,7 +542,7 @@ tess.analysis.efbd <- function( tree,
 
      # prior on change values
      if ( lambda.hyper.prior.form == "lognormal" ) {
-        lnp <- lnp + sum( dlnorm(valuesLambda,speciationRatePriorMean,speciationRatePriorStDev,log=TRUE) )
+        lnp <- lnp + sum( dlnorm(valuesLambda,meanlog=speciationRatePriorMean,speciationRatePriorStDev,log=TRUE) )
      } else if ( lambda.hyper.prior.form == "normal" ) {
         lnp <- lnp + sum( dnorm(valuesLambda,speciationRatePriorMean,speciationRatePriorStDev,log=TRUE) )
      } else if ( lambda.hyper.prior.form == "gamma" ) {
@@ -547,7 +564,7 @@ tess.analysis.efbd <- function( tree,
 
      # prior on change values
      if ( mu.hyper.prior.form == "lognormal" ) {
-        lnp <- lnp + sum( dlnorm(valuesMu,extinctionRatePriorMean,extinctionRatePriorStDev,log=TRUE) )
+        lnp <- lnp + sum( dlnorm(valuesMu,meanlog=extinctionRatePriorMean,extinctionRatePriorStDev,log=TRUE) )
      } else if ( mu.hyper.prior.form == "normal" ) {
         lnp <- lnp + sum( dnorm(valuesMu,extinctionRatePriorMean,extinctionRatePriorStDev,log=TRUE) )
      } else if ( mu.hyper.prior.form == "gamma" ) {

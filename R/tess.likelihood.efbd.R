@@ -310,7 +310,8 @@ E.EFBDP <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
    e <- exp(-A*dt)
    tmp <- b + d + f - A * ((1.0+B)-e*(1.0-B))/((1.0+B)+e*(1.0-B))
 
-   return ( tmp / (2.0*b) )
+
+   return (pmax(0, pmin(1.0,( tmp / (2.0*b) ))))
 }
 
 
@@ -335,7 +336,10 @@ D.EFBDP <- function( t, lambda, mu, phi, rho, rateChangeTimes ) {
    B <- ( (1.0 - 2.0*((1-r)+r*ifelse(ti==0.0,0,E.EFBDP(ti, lambda, mu, phi, rho, rateChangeTimes))) )*b + d + f ) / A
 
    e   <- exp(A*dt)
-   tmp <- (1.0+B) + e*(1.0-B)
+#   tmp <- (1.0+B) + e*(1.0-B)
+   tmp <- (1.0+B)*exp(-A*dt*0.5) + exp(A*dt*0.5)*(1.0-B)
 
-   return ( 4.0*e / (tmp*tmp) )
+
+#   return ( 4.0*e / (tmp*tmp) )
+   return ( 4.0 / (tmp*tmp) )
 }
